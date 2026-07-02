@@ -3,25 +3,19 @@ Shaun&Maria OS
 Main Application Entry Point
 """
 
-from config import BOT_TOKEN, CHAT_ID, OPENAI_API_KEY, GOOGLE_CALENDAR_ID
+from bot.telegram_bot import send_message
 
 
-def show_startup_status():
-    print("=" * 40)
-    print("❤️ Shaun&Maria OS v0.1")
-    print("=" * 40)
-    print()
+def main():
+    message = """❤️ <b>Shaun&Maria OS v0.2</b>
 
-    print("System Check:")
+✅ Telegram Engine Online
+✅ Python Connected
+✅ System Ready"""
 
-    print("BOT_TOKEN:", "✅ Loaded" if BOT_TOKEN else "❌ Missing")
-    print("CHAT_ID:", "✅ Loaded" if CHAT_ID else "❌ Missing")
-    print("OPENAI_API_KEY:", "✅ Loaded" if OPENAI_API_KEY else "⚪ Not set yet")
-    print("GOOGLE_CALENDAR_ID:", "✅ Loaded" if GOOGLE_CALENDAR_ID else "⚪ Not set yet")
-
-    print()
-    print("Status: System foundation ready.")
+    result = send_message(message)
+    print(result)
 
 
 if __name__ == "__main__":
-    show_startup_status()
+    main()
