@@ -1,10 +1,12 @@
 """
 ShaunMariaOS
+
 Wedding Engine
 """
 
 from datetime import datetime
-from apps.sheets_engine import get_worksheet_values
+
+from apps.database_engine import get_budget_sheet
 
 
 def money(value):
@@ -36,23 +38,21 @@ def get_wedding_dashboard():
 ⏳ <b>Countdown</b>
 {days_remaining} days to go
 
-Use:
+Commands:
 /weddingbudget - Budget summary"""
 
 
 def get_wedding_budget():
-    rows = get_worksheet_values("Budget")
+    rows = get_budget_sheet()
 
-    total_row = find_row_containing(rows, "Current Savings")
-    shortfall_row = find_row_containing(rows, "11,861")
-
-    # From your sheet structure:
-    # totals are around row with $45,444 / $19,662.40 / $25,861.60
     totals_row = None
     for row in rows:
-        if "$45,444" in row or "45,444" in row:
+        if any("45,444" in str(cell) or "45444" in str(cell) for cell in row):
             totals_row = row
             break
+
+    savings_row = find_row_containing(rows, "Current Savings")
+    shortfall_row = find_row_containing(rows, "Shortfall")
 
     if not totals_row:
         return "⚠️ Could not find budget totals in the Budget sheet."
@@ -61,18 +61,10 @@ def get_wedding_budget():
     paid = totals_row[2] if len(totals_row) > 2 else "-"
     balance = totals_row[3] if len(totals_row) > 3 else "-"
 
-    current_savings = "-"
-    if total_row and len(total_row) > 1:
-        current_savings = total_row[1]
+    current_savings = savings_row[1] if savings_row and len(savings_row) > 1 else "-"
+    shortfall = shortfall_row[1] if shortfall_row and len(shortfall_row) > 1 else "-"
 
-    shortfall = "-"
-    if shortfall_row:
-        for cell in shortfall_row:
-            if "11,861" in str(cell):
-                shortfall = cell
-                break
-
-    message = f"""💰 <b>Wedding Budget</b>
+    return f"""💰 <b>Wedding Budget</b>
 
 💍 <b>Total Budget</b>
 {money(total_budget)}
@@ -91,5 +83,3 @@ def get_wedding_budget():
 
 📊 <b>Source</b>
 Live from Google Sheets"""
-
-    return message
