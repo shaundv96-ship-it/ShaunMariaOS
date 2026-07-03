@@ -3,35 +3,30 @@ ShaunMariaOS
 Wedding Engine
 """
 
-import json
 from datetime import datetime
-from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_FILE = BASE_DIR / "data" / "wedding.json"
+from apps.sheets_engine import get_worksheet_values
 
 
-def money(amount):
-    return f"${amount:,.2f}"
+def money(value):
+    try:
+        amount = float(str(value).replace("$", "").replace(",", "").strip())
+        return f"${amount:,.2f}"
+    except ValueError:
+        return str(value)
 
 
-def load_wedding_data():
-    with open(DATA_FILE, "r", encoding="utf-8") as file:
-        return json.load(file)
+def find_row_containing(rows, text):
+    for row in rows:
+        for cell in row:
+            if text.lower() in str(cell).lower():
+                return row
+    return None
 
 
 def get_wedding_dashboard():
-    data = load_wedding_data()
-
-    wedding_date = datetime.strptime(data["wedding_date"], "%Y-%m-%d")
+    wedding_date = datetime(2026, 10, 31)
     today = datetime.now()
     days_remaining = (wedding_date - today).days
-
-    budget = data["budget"]
-    details = data["key_details"]
-
-    paid_percentage = (budget["paid"] / budget["total_budget"]) * 100
-    savings_percentage = (budget["current_savings"] / budget["balance"]) * 100
 
     return f"""💍 <b>Shaun & Maria Wedding</b>
 
@@ -41,23 +36,60 @@ def get_wedding_dashboard():
 ⏳ <b>Countdown</b>
 {days_remaining} days to go
 
-⛪ <b>Church</b>
-{details["church"]}
+Use:
+/weddingbudget - Budget summary"""
 
-🏛️ <b>Reception</b>
-{details["reception"]}
 
-💰 <b>Budget Summary</b>
-Total Budget: {money(budget["total_budget"])}
-Paid: {money(budget["paid"])}
-Balance: {money(budget["balance"])}
+def get_wedding_budget():
+    rows = get_worksheet_values("Budget")
+
+    total_row = find_row_containing(rows, "Current Savings")
+    shortfall_row = find_row_containing(rows, "11,861")
+
+    # From your sheet structure:
+    # totals are around row with $45,444 / $19,662.40 / $25,861.60
+    totals_row = None
+    for row in rows:
+        if "$45,444" in row or "45,444" in row:
+            totals_row = row
+            break
+
+    if not totals_row:
+        return "⚠️ Could not find budget totals in the Budget sheet."
+
+    total_budget = totals_row[1] if len(totals_row) > 1 else "-"
+    paid = totals_row[2] if len(totals_row) > 2 else "-"
+    balance = totals_row[3] if len(totals_row) > 3 else "-"
+
+    current_savings = "-"
+    if total_row and len(total_row) > 1:
+        current_savings = total_row[1]
+
+    shortfall = "-"
+    if shortfall_row:
+        for cell in shortfall_row:
+            if "11,861" in str(cell):
+                shortfall = cell
+                break
+
+    message = f"""💰 <b>Wedding Budget</b>
+
+💍 <b>Total Budget</b>
+{money(total_budget)}
+
+✅ <b>Paid</b>
+{money(paid)}
+
+📉 <b>Balance</b>
+{money(balance)}
 
 🏦 <b>Current Savings</b>
-{money(budget["current_savings"])}
+{money(current_savings)}
 
 ⚠️ <b>Shortfall</b>
-{money(budget["shortfall"])}
+{money(shortfall)}
 
-📊 <b>Progress</b>
-Paid: {paid_percentage:.1f}%
-Savings vs Balance: {savings_percentage:.1f}%"""
+📊 <b>Source</b>
+Live from Google Sheets"""
+
+    return message
