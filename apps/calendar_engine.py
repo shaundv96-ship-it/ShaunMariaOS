@@ -1,25 +1,25 @@
 """
-Shaun&Maria OS
+ShaunMariaOS
 Calendar Engine
 """
 
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(BASE_DIR))
+
+from config import GOOGLE_CALENDAR_ID
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-import sys
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-sys.path.append(str(BASE_DIR))
-from config import GOOGLE_CALENDAR_ID
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
-BASE_DIR = Path(__file__).resolve().parent.parent
 CREDENTIALS_FILE = BASE_DIR / "credentials.json"
 TOKEN_FILE = BASE_DIR / "token.json"
 
@@ -45,18 +45,15 @@ def get_calendar_service():
     return build("calendar", "v3", credentials=creds)
 
 
-def get_today_events():
+def get_events_between(start_time, end_time):
     service = get_calendar_service()
-
-    now = datetime.now(timezone.utc)
-    end_of_day = now.replace(hour=15, minute=59, second=59, microsecond=0)
 
     events_result = (
         service.events()
         .list(
             calendarId=GOOGLE_CALENDAR_ID,
-            timeMin=now.isoformat(),
-            timeMax=end_of_day.isoformat(),
+            timeMin=start_time.isoformat(),
+            timeMax=end_time.isoformat(),
             singleEvents=True,
             orderBy="startTime",
         )
@@ -66,32 +63,52 @@ def get_today_events():
     return events_result.get("items", [])
 
 
-if __name__ == "__main__":
+def get_today_events():
+    now = datetime.now(timezone.utc)
+    end_of_day = now.replace(hour=15, minute=59, second=59, microsecond=0)
+    return get_events_between(now, end_of_day)
 
-    events = get_today_events()
 
-    print()
-    print("=" * 45)
-    print("❤️ Shaun&Maria OS")
-    print("📅 Today's Schedule")
-    print("=" * 45)
+def get_tomorrow_events():
+    now = datetime.now(timezone.utc)
+    tomorrow = now + timedelta(days=1)
 
+    start_of_tomorrow = tomorrow.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_tomorrow = tomorrow.replace(hour=23, minute=59, second=59, microsecond=0)
+
+    return get_events_between(start_of_tomorrow, end_of_tomorrow)
+
+
+def format_events_for_telegram(title, events):
     if not events:
-        print("🎉 No events today!")
-    else:
+        return f"📅 <b>{title}</b>\n\nNo events scheduled."
 
-        for i, event in enumerate(events, start=1):
+    message = f"❤️ <b>ShaunMariaOS</b>\n\n📅 <b>{title}</b>\n\n"
 
-            start = event["start"].get(
-                "dateTime",
-                event["start"].get("date")
-            )
+    for event in events:
+        event_title = event.get("summary", "Untitled Event")
+        start = event["start"].get("dateTime", event["start"].get("date"))
 
-            title = event.get("summary", "Untitled Event")
+        if "T" in start:
+            time_part = start.split("T")[1][:5]
+            message += f"🕒 {time_part} - {event_title}\n"
+        else:
+            message += f"📌 All day - {event_title}\n"
 
-            print()
-            print(f"{i}. {title}")
-            print(f"   🕒 {start}")
+    return message
 
-    print()
-    print("=" * 45)
+
+def format_today_events_for_telegram():
+    return format_events_for_telegram("Today's Schedule", get_today_events())
+
+
+def format_tomorrow_events_for_telegram():
+    return format_events_for_telegram("Tomorrow's Schedule", get_tomorrow_events())
+
+
+if __name__ == "__main__":
+    events = get_today_events()
+    print(f"Found {len(events)} events today.")
+
+    for event in events:
+        print(event.get("summary", "Untitled Event"))

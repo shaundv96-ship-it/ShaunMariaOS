@@ -1,0 +1,16 @@
+{
+  "wedding_date": "2026-10-31",
+  "budget": {
+    "total_budget": 45443.50,
+    "paid": 19662.40,
+    "balance": 25861.60,
+    "current_savings": 14000.00,
+    "shortfall": 11861.60
+  },
+  "key_details": {
+    "church": "Church of the Nativity of The Blessed Virgin Mary",
+    "reception": "Chui Huay Lim Club",
+    "honeymoon": "Melbourne",
+    "estimated_bto_top": "Q3 2030"
+  }
+}

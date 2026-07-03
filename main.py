@@ -1,22 +1,36 @@
 """
-Shaun&Maria OS
-Version 0.3 - Telegram Command Bot
+ShaunMariaOS
+Version 0.6 - Calendar Commands
 """
 
 from datetime import datetime
+
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 from config import BOT_TOKEN
+from apps.calendar_engine import (
+    format_today_events_for_telegram,
+    format_tomorrow_events_for_telegram,
+)
+from apps.dashboard_engine import get_dashboard_message
 
+from apps.wedding_engine import get_wedding_dashboard
+async def wedding_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = get_wedding_dashboard()
+    await update.message.reply_text(message, parse_mode="HTML")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = """❤️ <b>Shaun&Maria OS v0.3</b>
+    message = """❤️ <b>ShaunMariaOS v0.6</b>
 
 Commands:
 /help - Show commands
 /status - System status
-/countdown - Wedding & BTO countdown"""
+/countdown - Wedding & BTO countdown
+/today - Today's schedule
+/tomorrow - Tomorrow's schedule
+/wedding - Wedding dashboard
+/dashboard - Main dashboard"""
     await update.message.reply_text(message, parse_mode="HTML")
 
 
@@ -25,7 +39,8 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 Telegram Bot: Online
 Python: Connected
-Shaun&Maria OS: Running"""
+Google Calendar: Connected
+ShaunMariaOS: Running"""
     await update.message.reply_text(message, parse_mode="HTML")
 
 
@@ -44,14 +59,33 @@ Estimated TOP: Q3 2030"""
     await update.message.reply_text(message, parse_mode="HTML")
 
 
+async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = format_today_events_for_telegram()
+    await update.message.reply_text(message, parse_mode="HTML")
+
+
+async def tomorrow_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = format_tomorrow_events_for_telegram()
+    await update.message.reply_text(message, parse_mode="HTML")
+
+
+async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = get_dashboard_message()
+    await update.message.reply_text(message, parse_mode="HTML")
+
+
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("countdown", countdown_command))
+    app.add_handler(CommandHandler("today", today_command))
+    app.add_handler(CommandHandler("tomorrow", tomorrow_command))
+    app.add_handler(CommandHandler("dashboard", dashboard_command))
+    app.add_handler(CommandHandler("wedding", wedding_command))
 
-    print("❤️ Shaun&Maria OS v0.3 is running...")
+    print("❤️ ShaunMariaOS v0.6 is running...")
     app.run_polling()
 
 
