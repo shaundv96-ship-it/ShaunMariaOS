@@ -15,8 +15,13 @@ from apps.calendar_engine import (
 )
 from apps.dashboard_engine import get_dashboard_message
 from apps.database_engine import get_database_status
-from apps.wedding_engine import get_wedding_dashboard, get_wedding_budget
-
+from apps.wedding_engine import (
+    get_wedding_dashboard,
+    get_wedding_budget,
+    get_guestlist_summary,
+    get_wedding_timeline,
+)
+from apps.database_engine import get_database_status
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
@@ -30,6 +35,8 @@ Commands:
 /tomorrow - Tomorrow's schedule
 /wedding - Wedding dashboard
 /weddingbudget - Wedding budget
+/guestlist - Guestlist summary
+/timeline - Wedding timeline
 /dashboard - Main dashboard"""
     await update.message.reply_text(message, parse_mode="HTML")
 
@@ -89,6 +96,13 @@ async def wedding_budget_command(update: Update, context: ContextTypes.DEFAULT_T
     message = get_wedding_budget()
     await update.message.reply_text(message, parse_mode="HTML")
 
+async def guestlist_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = get_guestlist_summary()
+    await update.message.reply_text(message, parse_mode="HTML")
+
+async def timeline_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = get_wedding_timeline()
+    await update.message.reply_text(message, parse_mode="HTML")
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -102,11 +116,11 @@ def main():
     app.add_handler(CommandHandler("dashboard", dashboard_command))
     app.add_handler(CommandHandler("wedding", wedding_command))
     app.add_handler(CommandHandler("weddingbudget", wedding_budget_command))
+    app.add_handler(CommandHandler("guestlist", guestlist_command))
+    app.add_handler(CommandHandler("timeline", timeline_command))
 
-    print("❤️ ShaunMariaOS v0.9 is running...")
+    print("❤️ ShaunMariaOS v1.0 Alpha is running...")
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
-    
