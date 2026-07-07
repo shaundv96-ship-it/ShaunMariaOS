@@ -17,6 +17,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from config import GOOGLE_SHEET_ID
 
 SCOPES = [
+    "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/spreadsheets.readonly",
     "https://www.googleapis.com/auth/drive.readonly",
 ]

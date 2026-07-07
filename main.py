@@ -22,6 +22,10 @@ from apps.wedding_engine import (
     get_wedding_timeline,
 )
 from apps.database_engine import get_database_status
+from apps.finance_engine import get_finance_dashboard
+from apps.bills_engine import get_bills_dashboard
+from apps.salary_engine import get_salary_dashboard
+from apps.insurance_engine import get_insurance_dashboard
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
@@ -37,6 +41,10 @@ Commands:
 /weddingbudget - Wedding budget
 /guestlist - Guestlist summary
 /timeline - Wedding timeline
+/finance - Finance dashboard
+/bills - Monthly bills
+/salary - Salary dashboard
+/insurance - Insurance dashboard
 /dashboard - Main dashboard"""
     await update.message.reply_text(message, parse_mode="HTML")
 
@@ -103,6 +111,38 @@ async def guestlist_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def timeline_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = get_wedding_timeline()
     await update.message.reply_text(message, parse_mode="HTML")
+async def finance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    message = get_finance_dashboard()
+
+    await update.message.reply_text(
+        message,
+        parse_mode="HTML"
+    )
+async def bills_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    message = get_bills_dashboard()
+
+    await update.message.reply_text(
+        message,
+        parse_mode="HTML"
+    )
+async def salary_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    message = get_salary_dashboard()
+
+    await update.message.reply_text(
+        message,
+        parse_mode="HTML"
+    )
+async def insurance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    message = get_insurance_dashboard()
+
+    await update.message.reply_text(
+        message,
+        parse_mode="HTML"
+    )
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -118,6 +158,11 @@ def main():
     app.add_handler(CommandHandler("weddingbudget", wedding_budget_command))
     app.add_handler(CommandHandler("guestlist", guestlist_command))
     app.add_handler(CommandHandler("timeline", timeline_command))
+    app.add_handler(CommandHandler("finance", finance_command))   
+    app.add_handler(CommandHandler("bills",bills_command))
+    app.add_handler( CommandHandler("salary",salary_command))
+    app.add_handler(
+    CommandHandler("insurance",insurance_command))
 
     print("❤️ ShaunMariaOS v1.0 Alpha is running...")
     app.run_polling()

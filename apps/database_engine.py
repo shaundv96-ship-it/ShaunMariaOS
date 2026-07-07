@@ -35,6 +35,10 @@ def get_database_status():
     return message
 
 
+# ==========================
+# Wedding Sheets
+# ==========================
+
 def get_budget_sheet():
     return get_worksheet_values(BUDGET_SHEET)
 
@@ -74,13 +78,10 @@ def get_timeline_sheet():
 def get_honeymoon_sheet():
     return get_worksheet_values(HONEYMOON_SHEET)
 
-def debug_timeline_sheet():
-    rows = get_timeline_sheet()
 
-    print("\n===== TIMELINE SHEET =====\n")
+# ==========================
+# Finance Sheets
+# ==========================
 
-    for i, row in enumerate(rows):
-        print(i, row)
-
-if __name__ == "__main__":
-    debug_timeline_sheet()
+def get_finance_sheet():
+    return get_worksheet_values("Finance")

@@ -1,21 +1,39 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+
 # Virtual Environment
 .venv/
+venv/
+
+# Google Credentials
+credentials.json
+token.json
+data/credentials.json
+data/token.json
 
 # Environment Variables
 .env
 
-# Python Cache
-__pycache__/
-*.pyc
-
-# Logs
-logs/
-
-# VS Code Settings
+# VS Code
 .vscode/
 
+# Logs
+*.log
+
 # OS Files
-.DS_Store
 Thumbs.db
-credentials.json
-token.json
+.DS_Store
+
+# Python Cache
+.pytest_cache/
+.mypy_cache/
+
+# Build
+build/
+dist/
+
+# Local databases
+*.sqlite3

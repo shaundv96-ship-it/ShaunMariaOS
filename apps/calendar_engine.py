@@ -18,8 +18,11 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-
+SCOPES = [
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/drive.readonly",
+]
 CREDENTIALS_FILE = BASE_DIR / "credentials.json"
 TOKEN_FILE = BASE_DIR / "token.json"
 
@@ -112,3 +115,33 @@ if __name__ == "__main__":
 
     for event in events:
         print(event.get("summary", "Untitled Event"))
+
+def get_calendar_summary():
+
+    events = get_today_events()
+
+    if not events:
+        return {
+            "event_count": 0,
+            "next_event": "No events today"
+        }
+
+    first = events[0]
+
+    title = first.get("summary", "Untitled Event")
+
+    start = first["start"].get(
+        "dateTime",
+        first["start"].get("date")
+    )
+
+    if "T" in start:
+        time = start.split("T")[1][:5]
+        next_event = f"{title} ({time})"
+    else:
+        next_event = f"{title} (All Day)"
+
+    return {
+        "event_count": len(events),
+        "next_event": next_event
+    }

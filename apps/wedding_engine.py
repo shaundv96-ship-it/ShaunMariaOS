@@ -179,6 +179,62 @@ Balance: {cards_balance}
 📊 <b>Source</b>
 Live from Google Sheets"""
 
+def get_wedding_summary():
+    rows = get_budget_sheet()
+    guest_rows = get_guestlist_sheet()
+
+    wedding_date = WEDDING_DATE
+    today = datetime.now()
+    days_remaining = (wedding_date - today).days
+
+    total_budget = 0
+    paid = 0
+    balance = 0
+    current_savings = 0
+
+    for row in rows:
+        if len(row) >= 4 and ("45,444" in str(row[1]) or "45444" in str(row[1])):
+            try:
+                total_budget = float(str(row[1]).replace("$", "").replace(",", ""))
+                paid = float(str(row[2]).replace("$", "").replace(",", ""))
+                balance = float(str(row[3]).replace("$", "").replace(",", ""))
+            except:
+                pass
+
+        row_text = " ".join(str(cell) for cell in row)
+        if "Current Savings" in row_text and len(row) > 1:
+            try:
+                current_savings = float(str(row[1]).replace("$", "").replace(",", ""))
+            except:
+                pass
+
+    guest_total = "-"
+    seats_available = "-"
+
+    for row in guest_rows:
+        for i, cell in enumerate(row):
+            value = str(cell).strip()
+
+            if "Total as of" in value and i + 1 < len(row):
+                guest_total = row[i + 1]
+
+            if value == "seats available" and i + 1 < len(row):
+                seats_available = row[i + 1]
+
+    paid_percentage = (paid / total_budget * 100) if total_budget else 0
+    shortfall = balance - current_savings
+
+    return {
+        "days_remaining": days_remaining,
+        "total_budget": total_budget,
+        "paid": paid,
+        "balance": balance,
+        "current_savings": current_savings,
+        "shortfall": shortfall,
+        "paid_percentage": paid_percentage,
+        "guest_total": guest_total,
+        "seats_available": seats_available,
+    }
 
 def get_wedding_timeline():
     rows = get_timeline_sheet()
