@@ -26,6 +26,12 @@ from apps.finance_engine import get_finance_dashboard
 from apps.bills_engine import get_bills_dashboard
 from apps.salary_engine import get_salary_dashboard
 from apps.insurance_engine import get_insurance_dashboard
+from apps.briefing_engine import get_daily_briefing
+from apps.about_engine import get_about
+from utils.logger import logger
+from apps.notification_engine import get_notification_message
+from apps.changelog_engine import get_changelog_dashboard
+from services.scheduler import start_scheduler
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
@@ -45,6 +51,10 @@ Commands:
 /bills - Monthly bills
 /salary - Salary dashboard
 /insurance - Insurance dashboard
+/briefing - Daily briefing
+/about - About ShaunMariaOS
+/changelog - View release history
+/notifications - Smart reminders
 /dashboard - Main dashboard"""
     await update.message.reply_text(message, parse_mode="HTML")
 
@@ -143,9 +153,29 @@ async def insurance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message,
         parse_mode="HTML"
     )
+async def briefing_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = get_daily_briefing()
+    await update.message.reply_text(message, parse_mode="HTML")
+async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_about(),parse_mode="HTML",)
+async def notifications_command(update, context):await update.message.reply_text(get_notification_message(),parse_mode="HTML",)
+async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_changelog_dashboard(),parse_mode="HTML",)
+async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(f"Your Chat ID is:\n\n{update.effective_chat.id}")
 
 def main():
+    """
+    Entry point for ShaunMariaOS.
+    Initializes Telegram, registers commands, starts scheduler and polling.
+    """
+
+    logger.info("Starting ShaunMariaOS...")
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+    logger.info("Telegram bot initialized.")
+
+    from app_config import TELEGRAM_CHAT_ID
+
+    logger.info(f"Loaded TELEGRAM_CHAT_ID = {TELEGRAM_CHAT_ID}")
+    logger.info(f"Type = {type(TELEGRAM_CHAT_ID)}")
 
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("status", status_command))
@@ -158,14 +188,21 @@ def main():
     app.add_handler(CommandHandler("weddingbudget", wedding_budget_command))
     app.add_handler(CommandHandler("guestlist", guestlist_command))
     app.add_handler(CommandHandler("timeline", timeline_command))
-    app.add_handler(CommandHandler("finance", finance_command))   
-    app.add_handler(CommandHandler("bills",bills_command))
-    app.add_handler( CommandHandler("salary",salary_command))
-    app.add_handler(
-    CommandHandler("insurance",insurance_command))
+    app.add_handler(CommandHandler("finance", finance_command))
+    app.add_handler(CommandHandler("bills", bills_command))
+    app.add_handler(CommandHandler("salary", salary_command))
+    app.add_handler(CommandHandler("insurance", insurance_command))
+    app.add_handler(CommandHandler("briefing", briefing_command))
+    app.add_handler(CommandHandler("about", about_command))
+    app.add_handler(CommandHandler("notifications", notifications_command))
+    app.add_handler(CommandHandler("changelog", changelog_command))
+    app.add_handler(CommandHandler("chatid", chatid_command))
 
-    print("❤️ ShaunMariaOS v1.0 Alpha is running...")
+    start_scheduler(app)
+
+    logger.info("❤️ ShaunMariaOS started successfully.")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()

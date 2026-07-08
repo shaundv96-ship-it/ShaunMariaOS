@@ -1,10 +1,9 @@
 """
 ShaunMariaOS
 
-Project constants.
+Project Constants
 """
 
-# Wedding tabs
 BUDGET_SHEET = "Budget"
 CHECKLIST_SHEET = "Checklist"
 GUESTLIST_SHEET = "Guestlist"
@@ -16,7 +15,6 @@ PHOTOGRAPHY_SHEET = "Photography List"
 TIMELINE_SHEET = "Timeline"
 HONEYMOON_SHEET = "Honeymoon"
 
-# Future tabs
 HOME_SHEET = "Home"
 FINANCE_SHEET = "Finance"
 INSURANCE_SHEET = "Insurance"

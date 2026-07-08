@@ -1,60 +1,151 @@
 # ❤️ ShaunMariaOS Changelog
 
+> Build once. Improve forever.
+
 ---
 
-## v0.8 (Current)
+# v1.2.2 Alpha (Current)
 
-### Added
+**Codename:** Foundation
 
-- Wedding Module
+## ✨ Added
+
+### Core Platform
+- Modular application architecture
+- Central application configuration (`app_config.py`)
+- Git version control
+- GitHub repository
+- Logging system
+- Architecture documentation
+
+### Telegram
+- `/dashboard`
+- `/about`
+- `/briefing`
+- `/notifications`
+- `/help`
+- `/status`
+
+### WeddingOS
 - Wedding Dashboard
-- Wedding JSON Database
-- Shared Project Documentation
+- Budget Summary
+- Guest List Summary
+- Wedding Timeline
+- Countdown
+- Wedding Summary API
+
+### FinanceOS
+- Finance Dashboard
+- Salary
+- Bills
+- Insurance
+- Finance Summary API
+
+### CalendarOS
+- Google Calendar integration
+- Today's Schedule
+- Tomorrow's Schedule
+- Calendar Summary API
+
+### Notification Engine
+- Smart notifications
+- Dashboard insights
+- Shared notification service
+
+### Documentation
+- README
+- CHANGELOG
+- ARCHITECTURE
 
 ---
 
-## v0.7
+# v1.1 Alpha
 
-### Added
+## ✨ Added
 
-- Dashboard
-- Google Calendar Integration
-- /today
-- /tomorrow
+- Dashboard redesign
+- Summary architecture
+- Improved project structure
+- Shared configuration
+- Better formatting
+- Better command organization
 
 ---
 
-## v0.6
+# v1.0 Alpha
 
-### Added
+**Codename:** Genesis
+
+## ✨ Initial Release
+
+### Core
 
 - Telegram Bot
-- /help
-- /status
-- /countdown
+- Google Sheets Integration
+- Google Calendar Integration
+
+### WeddingOS
+
+- Budget
+- Guest List
+- Timeline
+
+### FinanceOS
+
+- Salary
+- Bills
+- Insurance
+
+### Dashboard
+
+- Daily overview
+- Countdown
+- Finance summary
+- Wedding summary
 
 ---
 
-## v0.5
+# Upcoming
 
-### Added
+## v1.3 Alpha
 
-- Project Structure
-- Virtual Environment
-- GitHub Repository
+**Codename:** Reliability
 
----
+### Planned
 
-## Upcoming
-
-### v0.9
-
-Excel Integration
-
-Wedding Planning.xlsx becomes the project's source of truth.
+- `/changelog`
+- Startup banner
+- Better error handling
+- Railway deployment
+- Automatic Morning Briefing
+- Automatic Evening Summary
 
 ---
 
-### v1.0
+## v2.0
 
-ShaunMariaOS Shared Life Operating System
+**Codename:** Home
+
+### Planned
+
+🏠 HomeOS
+
+- Home Dashboard
+- Renovation Tracker
+- Furniture Tracker
+- Appliance Tracker
+- Warranty Tracker
+- Home Fund
+- Key Collection Countdown
+
+---
+
+## Future Roadmap
+
+✈️ TravelOS
+
+👨‍👩‍👧 FamilyOS
+
+☁️ Cloud Automation
+
+🤖 AI Life Assistant

@@ -6,39 +6,108 @@ Dashboard Engine
 
 from datetime import datetime
 
+from app_config import APP_NAME, APP_VERSION, APP_STAGE, HOME_NAME, HOME_TOP
+from apps.calendar_engine import get_calendar_summary
 from apps.finance_engine import get_finance_summary
 from apps.wedding_engine import get_wedding_summary
-from apps.calendar_engine import get_calendar_summary
 
 
-VERSION = "v1.0 Alpha"
+VERSION = f"v{APP_VERSION} {APP_STAGE}"
+
+
+def money(value):
+    try:
+        amount = float(value)
+        return f"${amount:,.2f}"
+    except (ValueError, TypeError):
+        return "$0.00"
 
 
 def get_greeting():
-
     hour = datetime.now().hour
 
     if hour < 12:
         return "☀️ Good Morning Shaun"
-
-    elif hour < 18:
+    if hour < 18:
         return "🌤 Good Afternoon Shaun"
-
-    elif hour < 22:
+    if hour < 22:
         return "🌆 Good Evening Shaun"
 
     return "🌙 Good Night Shaun"
 
 
-def get_dashboard_message():
+def safe_finance_summary():
+    try:
+        return get_finance_summary()
+    except Exception:
+        return {
+            "salary": 0,
+            "available": 0,
+            "insurance": 0,
+            "commitments": 0,
+            "health": "⚠️ Finance unavailable",
+        }
 
-    finance = get_finance_summary()
-    wedding = get_wedding_summary()
-    calendar = get_calendar_summary()
+
+def safe_wedding_summary():
+    try:
+        return get_wedding_summary()
+    except Exception:
+        return {
+            "days_remaining": "-",
+            "guest_total": "-",
+            "seats_available": "-",
+            "paid": 0,
+            "total_budget": 0,
+            "paid_percentage": 0,
+        }
+
+
+def safe_calendar_summary():
+    try:
+        return get_calendar_summary()
+    except Exception:
+        return {
+            "event_count": 0,
+            "next_event": "Calendar unavailable",
+        }
+
+
+def build_insights(finance, wedding, calendar):
+    insights = []
+
+    if finance["available"] >= 1000:
+        insights.append("💰 Cash flow is healthy.")
+    elif finance["available"] > 0:
+        insights.append("💰 Cash flow is manageable.")
+    else:
+        insights.append("⚠️ Review monthly cash flow.")
+
+    if wedding["seats_available"] != "-":
+        insights.append(f"💒 {wedding['seats_available']} wedding seats remaining.")
+
+    if wedding["paid_percentage"] >= 40:
+        insights.append("✅ Wedding budget is progressing well.")
+
+    if calendar["event_count"] == 0:
+        insights.append("📅 No calendar events today.")
+
+    if not insights:
+        insights.append("Everything looks good today.")
+
+    return insights
+
+
+def get_dashboard_message():
+    finance = safe_finance_summary()
+    wedding = safe_wedding_summary()
+    calendar = safe_calendar_summary()
 
     today = datetime.now().strftime("%A, %d %B %Y")
+    insights = build_insights(finance, wedding, calendar)
 
-    message = f"""❤️ <b>ShaunMariaOS</b>
+    message = f"""❤️ <b>{APP_NAME}</b>
+{VERSION}
 
 {get_greeting()}
 
@@ -55,17 +124,19 @@ def get_dashboard_message():
 
 💰 Budget
 {wedding['paid_percentage']:.1f}% Paid
+{money(wedding.get('paid', 0))} / {money(wedding.get('total_budget', 0))}
 
 ━━━━━━━━━━━━━━━━━━
 
 💵 <b>Finance</b>
 
-Salary
-${finance['salary']:,.2f}
+💰 Salary
+{money(finance['salary'])}
 
-Available
-${finance['available']:,.2f}
+💳 Available Cash
+{money(finance['available'])}
 
+📊 Cash Flow
 {finance['health']}
 
 ━━━━━━━━━━━━━━━━━━
@@ -78,42 +149,21 @@ ${finance['available']:,.2f}
 
 🏠 <b>Home</b>
 
-OakVille @ AMK
+{HOME_NAME}
 
 Status
 Booked ✅
 
 TOP
-Q3 2030
+{HOME_TOP}
 
 ━━━━━━━━━━━━━━━━━━
 
 🧠 <b>Quick Insight</b>
 """
 
-    # ---------- AI Insight ----------
-
-    insights = []
-
-    if finance["available"] >= 1000:
-        insights.append("💰 Cash flow is healthy.")
-
-    if wedding["seats_available"] != "-":
-        insights.append(
-            f"💒 {wedding['seats_available']} wedding seats remaining."
-        )
-
-    if calendar["event_count"] == 0:
-        insights.append("📅 No calendar events today.")
-
-    if wedding["paid_percentage"] >= 40:
-        insights.append("✅ Wedding budget is progressing well.")
-
-    if not insights:
-        insights.append("Everything looks good today.")
-
-    for item in insights:
-        message += f"\n• {item}"
+    for insight in insights:
+        message += f"\n• {insight}"
 
     message += f"""
 
