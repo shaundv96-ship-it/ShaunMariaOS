@@ -167,8 +167,10 @@ def main():
     Entry point for ShaunMariaOS.
     Initializes Telegram, registers commands, starts scheduler and polling.
     """
-    write_google_auth_files()
     logger.info("Starting ShaunMariaOS...")
+
+    write_google_auth_files()
+    logger.info("Google auth files prepared.")
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     logger.info("Telegram bot initialized.")
