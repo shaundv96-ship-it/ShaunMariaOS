@@ -1,21 +1,26 @@
 """
 ShaunMariaOS
 
-UI Helpers
+UI Builder
 """
 
 SEPARATOR = "━━━━━━━━━━━━━━━━━━"
 
 
 def build_screen(title, sections=None, footer=None):
-    message = f"{title}\n\n{SEPARATOR}\n"
+
+    lines = [title, "", SEPARATOR]
 
     if sections:
         for heading, body in sections:
-            message += f"\n<b>{heading}</b>\n{body}\n"
-            message += f"\n{SEPARATOR}\n"
+            lines.append("")
+            lines.append(f"<b>{heading}</b>")
+            lines.append(body)
 
     if footer:
-        message += f"\n{footer}"
+        lines.append("")
+        lines.append(SEPARATOR)
+        lines.append("")
+        lines.append(footer)
 
-    return message
+    return "\n".join(lines)
