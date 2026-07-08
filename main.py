@@ -36,12 +36,15 @@ from config import write_google_auth_files
 from apps.version_engine import get_version
 from apps.health_engine import get_health
 from utils.startup import startup_banner
+from apps.menu_engine import get_menu
+from apps.menu_keyboard import get_main_keyboard
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
 
 Commands:
 /help - Show commands
+/menu - Menu
 /status - System status
 /database - Database status
 /countdown - Wedding & BTO countdown
@@ -167,6 +170,7 @@ async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(f"Your Chat ID is:\n\n{update.effective_chat.id}")
 async def version_command(update, context):await update.message.reply_text(get_version(),parse_mode="HTML",)
 async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_health(), parse_mode="HTML")
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_menu(), parse_mode="HTML")
 
 def main():
     """
@@ -207,6 +211,7 @@ def main():
     app.add_handler(CommandHandler("chatid", chatid_command))
     app.add_handler(CommandHandler("version", version_command))
     app.add_handler(CommandHandler("health", health_command))
+    app.add_handler(CommandHandler("menu", menu_command))
 
     start_scheduler(app)
     from utils.error_handler import error_handler
