@@ -6,64 +6,83 @@ Main Telegram Bot Application
 from datetime import datetime
 
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
-from config import BOT_TOKEN
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+)
+
+from config import BOT_TOKEN, write_google_auth_files
+from apps.about_engine import get_about
+from apps.bills_engine import get_bills_dashboard
 from apps.calendar_engine import (
     format_today_events_for_telegram,
     format_tomorrow_events_for_telegram,
 )
+from apps.changelog_engine import get_changelog_dashboard
 from apps.dashboard_engine import get_dashboard_message
 from apps.database_engine import get_database_status
+from apps.finance_engine import get_finance_dashboard
+from apps.health_engine import get_health
+from apps.insurance_engine import get_insurance_dashboard
+from apps.menu_keyboard import get_main_menu_buttons
+from apps.menu_navigation import handle_menu_button
+from apps.notification_engine import get_notification_message
+from apps.salary_engine import get_salary_dashboard
+from apps.version_engine import get_version
 from apps.wedding_engine import (
-    get_wedding_dashboard,
-    get_wedding_budget,
     get_guestlist_summary,
+    get_wedding_budget,
+    get_wedding_dashboard,
     get_wedding_timeline,
 )
-from apps.database_engine import get_database_status
-from apps.finance_engine import get_finance_dashboard
-from apps.bills_engine import get_bills_dashboard
-from apps.salary_engine import get_salary_dashboard
-from apps.insurance_engine import get_insurance_dashboard
 from apps.briefing_engine import get_daily_briefing
-from apps.about_engine import get_about
-from utils.logger import logger
-from apps.notification_engine import get_notification_message
-from apps.changelog_engine import get_changelog_dashboard
 from services.scheduler import start_scheduler
-from config import write_google_auth_files
-from apps.version_engine import get_version
-from apps.health_engine import get_health
+from utils.error_handler import error_handler
+from utils.logger import logger
 from utils.startup import startup_banner
-from apps.menu_engine import get_menu
-from apps.menu_navigation import handle_menu_button
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
 
-Commands:
-/help - Show commands
-/menu - Menu
-/status - System status
-/database - Database status
-/countdown - Wedding & BTO countdown
-/today - Today's schedule
-/tomorrow - Tomorrow's schedule
+Main:
+/menu - Easy menu
+/dashboard - Main dashboard
+/briefing - Daily briefing
+
+Wedding:
 /wedding - Wedding dashboard
 /weddingbudget - Wedding budget
 /guestlist - Guestlist summary
 /timeline - Wedding timeline
+
+Money:
 /finance - Finance dashboard
-/bills - Monthly bills
 /salary - Salary dashboard
+/bills - Monthly bills
 /insurance - Insurance dashboard
-/briefing - Daily briefing
-/about - About ShaunMariaOS
-/changelog - View release history
-/notifications - Smart reminders
+
+Calendar:
+/today - Today's schedule
+/tomorrow - Tomorrow's schedule
+
+System:
+/status - System status
 /health - System health
-/dashboard - Main dashboard"""
+/version - Version
+/about - About ShaunMariaOS
+/changelog - Release history"""
     await update.message.reply_text(message, parse_mode="HTML")
+
+
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "❤️ <b>ShaunMariaOS</b>\n\nChoose an option below 👇",
+        parse_mode="HTML",
+        reply_markup=get_main_menu_buttons(),
+    )
 
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -93,130 +112,140 @@ Estimated TOP: Q3 2030"""
 
 
 async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = format_today_events_for_telegram()
-    await update.message.reply_text(message, parse_mode="HTML")
+    await update.message.reply_text(
+        format_today_events_for_telegram(),
+        parse_mode="HTML",
+    )
 
 
 async def tomorrow_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = format_tomorrow_events_for_telegram()
-    await update.message.reply_text(message, parse_mode="HTML")
+    await update.message.reply_text(
+        format_tomorrow_events_for_telegram(),
+        parse_mode="HTML",
+    )
 
 
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = get_dashboard_message()
-    await update.message.reply_text(message, parse_mode="HTML")
+    await update.message.reply_text(
+        get_dashboard_message(),
+        parse_mode="HTML",
+    )
 
 
 async def database_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = get_database_status()
-    await update.message.reply_text(message, parse_mode="HTML")
+    await update.message.reply_text(
+        get_database_status(),
+        parse_mode="HTML",
+    )
 
 
 async def wedding_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = get_wedding_dashboard()
-    await update.message.reply_text(message, parse_mode="HTML")
+    await update.message.reply_text(
+        get_wedding_dashboard(),
+        parse_mode="HTML",
+    )
 
 
 async def wedding_budget_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = get_wedding_budget()
-    await update.message.reply_text(message, parse_mode="HTML")
+    await update.message.reply_text(
+        get_wedding_budget(),
+        parse_mode="HTML",
+    )
+
 
 async def guestlist_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = get_guestlist_summary()
-    await update.message.reply_text(message, parse_mode="HTML")
+    await update.message.reply_text(
+        get_guestlist_summary(),
+        parse_mode="HTML",
+    )
+
 
 async def timeline_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = get_wedding_timeline()
-    await update.message.reply_text(message, parse_mode="HTML")
-async def finance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    message = get_finance_dashboard()
-
     await update.message.reply_text(
-        message,
-        parse_mode="HTML"
-    )
-async def bills_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    message = get_bills_dashboard()
-
-    await update.message.reply_text(
-        message,
-        parse_mode="HTML"
-    )
-async def salary_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    message = get_salary_dashboard()
-
-    await update.message.reply_text(
-        message,
-        parse_mode="HTML"
-    )
-async def insurance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    message = get_insurance_dashboard()
-
-    await update.message.reply_text(
-        message,
-        parse_mode="HTML"
-    )
-async def briefing_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = get_daily_briefing()
-    await update.message.reply_text(message, parse_mode="HTML")
-async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_about(),parse_mode="HTML",)
-async def notifications_command(update, context):await update.message.reply_text(get_notification_message(),parse_mode="HTML",)
-async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_changelog_dashboard(),parse_mode="HTML",)
-async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(f"Your Chat ID is:\n\n{update.effective_chat.id}")
-async def version_command(update, context):await update.message.reply_text(get_version(),parse_mode="HTML",)
-async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_health(), parse_mode="HTML")
-async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "❤️ <b>ShaunMariaOS</b>\n\nChoose an option below 👇",
+        get_wedding_timeline(),
         parse_mode="HTML",
-        reply_markup=get_main_menu_buttons(),
     )
-async def menu_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
 
-    if query.data == "menu_today":
-        message = format_today_events_for_telegram()
 
-    elif query.data == "menu_dashboard":
-        message = get_dashboard_message()
+async def finance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_finance_dashboard(),
+        parse_mode="HTML",
+    )
 
-    elif query.data == "menu_money":
-        message = get_finance_dashboard()
 
-    elif query.data == "menu_wedding":
-        message = get_wedding_dashboard()
+async def bills_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_bills_dashboard(),
+        parse_mode="HTML",
+    )
 
-    elif query.data == "menu_system":
-        message = get_health()
 
-    else:
-        message = "⚠️ Unknown option."
+async def salary_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_salary_dashboard(),
+        parse_mode="HTML",
+    )
 
-    await query.message.reply_text(message, parse_mode="HTML")
 
-def main():
-    """
-    Entry point for ShaunMariaOS.
-    Initializes Telegram, registers commands, starts scheduler and polling.
-    """
-    logger.info("Starting ShaunMariaOS...")
+async def insurance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_insurance_dashboard(),
+        parse_mode="HTML",
+    )
 
-    write_google_auth_files()
-    logger.info("Google auth files prepared.")
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    logger.info("Telegram bot initialized.")
+async def briefing_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_daily_briefing(),
+        parse_mode="HTML",
+    )
 
-    from app_config import TELEGRAM_CHAT_ID
 
-    
+async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_about(),
+        parse_mode="HTML",
+    )
 
+
+async def notifications_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_notification_message(),
+        parse_mode="HTML",
+    )
+
+
+async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_changelog_dashboard(),
+        parse_mode="HTML",
+    )
+
+
+async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        f"Your Chat ID is:\n\n{update.effective_chat.id}"
+    )
+
+
+async def version_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_version(),
+        parse_mode="HTML",
+    )
+
+
+async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        get_health(),
+        parse_mode="HTML",
+    )
+
+
+def register_handlers(app):
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("menu", menu_command))
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("database", database_command))
     app.add_handler(CommandHandler("countdown", countdown_command))
@@ -238,14 +267,22 @@ def main():
     app.add_handler(CommandHandler("chatid", chatid_command))
     app.add_handler(CommandHandler("version", version_command))
     app.add_handler(CommandHandler("health", health_command))
-    app.add_handler(CommandHandler("menu", menu_command))
+
     app.add_handler(CallbackQueryHandler(handle_menu_button))
-
-    
-    start_scheduler(app)
-    from utils.error_handler import error_handler
-
     app.add_error_handler(error_handler)
+
+
+def main():
+    logger.info("Starting ShaunMariaOS...")
+
+    write_google_auth_files()
+    logger.info("Google auth files prepared.")
+
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    logger.info("Telegram bot initialized.")
+
+    register_handlers(app)
+    start_scheduler(app)
 
     startup_banner()
     app.run_polling()
