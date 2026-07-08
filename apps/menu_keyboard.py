@@ -1,21 +1,25 @@
 """
 ShaunMariaOS
 
-Telegram Menu Keyboard
+Inline Menu Buttons
 """
 
-from telegram import ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def get_main_keyboard():
+def get_main_menu_buttons():
     keyboard = [
-        ["📅 Today", "💍 Wedding"],
-        ["💰 Money", "🏠 Home"],
-        ["❤️ Dashboard", "⚙️ More"],
+        [
+            InlineKeyboardButton("📅 Today", callback_data="menu_today"),
+            InlineKeyboardButton("💍 Wedding", callback_data="menu_wedding"),
+        ],
+        [
+            InlineKeyboardButton("💰 Money", callback_data="menu_money"),
+            InlineKeyboardButton("❤️ Dashboard", callback_data="menu_dashboard"),
+        ],
+        [
+            InlineKeyboardButton("⚙️ System", callback_data="menu_system"),
+        ],
     ]
 
-    return ReplyKeyboardMarkup(
-        keyboard,
-        resize_keyboard=True,
-        one_time_keyboard=False,
-    )
+    return InlineKeyboardMarkup(keyboard)

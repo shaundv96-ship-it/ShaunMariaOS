@@ -6,8 +6,7 @@ Main Telegram Bot Application
 from datetime import datetime
 
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
 from config import BOT_TOKEN
 from apps.calendar_engine import (
     format_today_events_for_telegram,
@@ -37,7 +36,7 @@ from apps.version_engine import get_version
 from apps.health_engine import get_health
 from utils.startup import startup_banner
 from apps.menu_engine import get_menu
-from apps.menu_keyboard import get_main_keyboard
+from apps.menu_keyboard import get_main_menu_buttons
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
@@ -170,7 +169,36 @@ async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(f"Your Chat ID is:\n\n{update.effective_chat.id}")
 async def version_command(update, context):await update.message.reply_text(get_version(),parse_mode="HTML",)
 async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_health(), parse_mode="HTML")
-async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text("❤️ <b>ShaunMariaOS</b>\n\nChoose an option below 👇",parse_mode="HTML",reply_markup=get_main_keyboard(),)
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "❤️ <b>ShaunMariaOS</b>\n\nChoose an option below 👇",
+        parse_mode="HTML",
+        reply_markup=get_main_menu_buttons(),
+    )
+async def menu_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "menu_today":
+        message = format_today_events_for_telegram()
+
+    elif query.data == "menu_dashboard":
+        message = get_dashboard_message()
+
+    elif query.data == "menu_money":
+        message = get_finance_dashboard()
+
+    elif query.data == "menu_wedding":
+        message = get_wedding_dashboard()
+
+    elif query.data == "menu_system":
+        message = get_health()
+
+    else:
+        message = "⚠️ Unknown option."
+
+    await query.message.reply_text(message, parse_mode="HTML")
+
 def main():
     """
     Entry point for ShaunMariaOS.
@@ -211,7 +239,8 @@ def main():
     app.add_handler(CommandHandler("version", version_command))
     app.add_handler(CommandHandler("health", health_command))
     app.add_handler(CommandHandler("menu", menu_command))
-
+    app.add_handler(CallbackQueryHandler(menu_button_handler))
+    
     start_scheduler(app)
     from utils.error_handler import error_handler
 
