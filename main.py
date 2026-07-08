@@ -170,8 +170,7 @@ async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(f"Your Chat ID is:\n\n{update.effective_chat.id}")
 async def version_command(update, context):await update.message.reply_text(get_version(),parse_mode="HTML",)
 async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_health(), parse_mode="HTML")
-async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_menu(), parse_mode="HTML")
-
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text("❤️ <b>ShaunMariaOS</b>\n\nChoose an option below 👇",parse_mode="HTML",reply_markup=get_main_keyboard(),)
 def main():
     """
     Entry point for ShaunMariaOS.
