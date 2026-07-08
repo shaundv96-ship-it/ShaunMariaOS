@@ -36,7 +36,7 @@ from apps.version_engine import get_version
 from apps.health_engine import get_health
 from utils.startup import startup_banner
 from apps.menu_engine import get_menu
-from apps.menu_keyboard import get_main_menu_buttons
+from apps.menu_navigation import handle_menu_button
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
@@ -239,7 +239,8 @@ def main():
     app.add_handler(CommandHandler("version", version_command))
     app.add_handler(CommandHandler("health", health_command))
     app.add_handler(CommandHandler("menu", menu_command))
-    app.add_handler(CallbackQueryHandler(menu_button_handler))
+    app.add_handler(CallbackQueryHandler(handle_menu_button))
+
     
     start_scheduler(app)
     from utils.error_handler import error_handler
