@@ -7,6 +7,7 @@ Health Engine
 from app_config import APP_NAME, APP_VERSION, APP_STAGE
 from apps.calendar_engine import get_calendar_summary
 from apps.database_engine import get_database_status
+from utils.ui import build_screen
 
 
 def get_health():
@@ -23,22 +24,17 @@ def get_health():
     except Exception:
         sheets_status = "🔴 Unavailable"
 
-    return f"""❤️ <b>{APP_NAME} Health</b>
+    sections = [
+        ("🤖 Telegram", "🟢 Online"),
+        ("☁️ Railway", "🟢 Running"),
+        ("📅 Google Calendar", calendar_status),
+        ("📊 Google Sheets", sheets_status),
+        ("⏰ Scheduler", "🟢 Active"),
+        ("🚀 Version", f"v{APP_VERSION} {APP_STAGE}"),
+    ]
 
-🤖 <b>Telegram</b>
-🟢 Online
-
-☁️ <b>Railway</b>
-🟢 Running
-
-📅 <b>Google Calendar</b>
-{calendar_status}
-
-📊 <b>Google Sheets</b>
-{sheets_status}
-
-⏰ <b>Scheduler</b>
-🟢 Active
-
-🚀 <b>Version</b>
-v{APP_VERSION} {APP_STAGE}"""
+    return build_screen(
+        f"❤️ <b>{APP_NAME} Health</b>",
+        sections,
+        "Everything looks good! 🎉",
+    )
