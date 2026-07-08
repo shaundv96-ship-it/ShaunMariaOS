@@ -31,3 +31,15 @@ SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/drive.readonly",
 ]
+GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
+GOOGLE_TOKEN_JSON = os.getenv("GOOGLE_TOKEN_JSON")
+
+
+def write_google_auth_files():
+    if GOOGLE_CREDENTIALS_JSON:
+        with open(CREDENTIALS_FILE, "w", encoding="utf-8") as file:
+            file.write(GOOGLE_CREDENTIALS_JSON)
+
+    if GOOGLE_TOKEN_JSON:
+        with open(TOKEN_FILE, "w", encoding="utf-8") as file:
+            file.write(GOOGLE_TOKEN_JSON)

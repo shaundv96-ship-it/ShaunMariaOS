@@ -32,6 +32,7 @@ from utils.logger import logger
 from apps.notification_engine import get_notification_message
 from apps.changelog_engine import get_changelog_dashboard
 from services.scheduler import start_scheduler
+from config import write_google_auth_files
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
@@ -166,7 +167,7 @@ def main():
     Entry point for ShaunMariaOS.
     Initializes Telegram, registers commands, starts scheduler and polling.
     """
-
+    write_google_auth_files()
     logger.info("Starting ShaunMariaOS...")
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
