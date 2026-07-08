@@ -24,14 +24,15 @@ def get_health():
     except Exception:
         sheets_status = "🔴 Unavailable"
 
-    sections = [
-        ("🤖 Telegram", "🟢 Online"),
-        ("☁️ Railway", "🟢 Running"),
-        ("📅 Google Calendar", calendar_status),
-        ("📊 Google Sheets", sheets_status),
-        ("⏰ Scheduler", "🟢 Active"),
-        ("🚀 Version", f"v{APP_VERSION} {APP_STAGE}"),
-    ]
+   from utils.widgets import status_widget
+   sections = [
+    status_widget("🤖 Telegram", "🟢 Online"),
+    status_widget("☁️ Railway", "🟢 Running"),
+    status_widget("📅 Google Calendar", calendar_status),
+    status_widget("📊 Google Sheets", sheets_status),
+    status_widget("⏰ Scheduler", "🟢 Active"),
+    status_widget("🚀 Version", f"v{APP_VERSION} {APP_STAGE}"),
+]
 
     return build_screen(
         f"❤️ <b>{APP_NAME} Health</b>",

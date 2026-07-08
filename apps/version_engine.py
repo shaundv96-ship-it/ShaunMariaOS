@@ -9,14 +9,14 @@ from utils.ui import build_screen
 
 
 def get_version():
-    sections = [
-        ("🚀 Version", f"v{APP_VERSION}"),
-        ("🏷 Stage", APP_STAGE),
-        ("✨ Codename", APP_CODENAME),
-        ("☁️ Platform", "Railway"),
-        ("🤖 Telegram", "🟢 Connected"),
-    ]
-
+   from utils.widgets import info_widget
+   sections = [
+    info_widget("🚀 Version", f"v{APP_VERSION}"),
+    info_widget("🏷 Stage", APP_STAGE),
+    info_widget("✨ Codename", APP_CODENAME),
+    info_widget("☁️ Platform", "Railway"),
+    info_widget("🤖 Telegram", "🟢 Connected"),
+]
     return build_screen(
         f"❤️ <b>{APP_NAME}</b>",
         sections,
