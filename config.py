@@ -14,6 +14,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID")
 GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 
+GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
+GOOGLE_TOKEN_JSON = os.getenv("GOOGLE_TOKEN_JSON")
+
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is missing.")
 
@@ -31,12 +34,9 @@ SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/drive.readonly",
 ]
-GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
-GOOGLE_TOKEN_JSON = os.getenv("GOOGLE_TOKEN_JSON")
 
 
 def write_google_auth_files():
-    def write_google_auth_files():
     if GOOGLE_CREDENTIALS_JSON:
         with open(CREDENTIALS_FILE, "w", encoding="utf-8") as file:
             file.write(GOOGLE_CREDENTIALS_JSON)
