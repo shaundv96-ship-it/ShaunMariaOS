@@ -9,6 +9,10 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+print("Environment variables loaded:")
+print("GOOGLE_CREDENTIALS_JSON exists:", "GOOGLE_CREDENTIALS_JSON" in os.environ)
+print("GOOGLE_TOKEN_JSON exists:", "GOOGLE_TOKEN_JSON" in os.environ)
+print("Number of env vars:", len(os.environ))
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID")

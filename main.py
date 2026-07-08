@@ -33,6 +33,9 @@ from apps.notification_engine import get_notification_message
 from apps.changelog_engine import get_changelog_dashboard
 from services.scheduler import start_scheduler
 from config import write_google_auth_files
+from apps.version_engine import get_version
+from apps.health_engine import get_health
+from utils.startup import startup_banner
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = """❤️ <b>ShaunMariaOS</b>
@@ -56,6 +59,7 @@ Commands:
 /about - About ShaunMariaOS
 /changelog - View release history
 /notifications - Smart reminders
+/health - System health
 /dashboard - Main dashboard"""
     await update.message.reply_text(message, parse_mode="HTML")
 
@@ -161,6 +165,8 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):awai
 async def notifications_command(update, context):await update.message.reply_text(get_notification_message(),parse_mode="HTML",)
 async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_changelog_dashboard(),parse_mode="HTML",)
 async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(f"Your Chat ID is:\n\n{update.effective_chat.id}")
+async def version_command(update, context):await update.message.reply_text(get_version(),parse_mode="HTML",)
+async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):await update.message.reply_text(get_health(), parse_mode="HTML")
 
 def main():
     """
@@ -177,8 +183,7 @@ def main():
 
     from app_config import TELEGRAM_CHAT_ID
 
-    logger.info(f"Loaded TELEGRAM_CHAT_ID = {TELEGRAM_CHAT_ID}")
-    logger.info(f"Type = {type(TELEGRAM_CHAT_ID)}")
+    
 
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("status", status_command))
@@ -200,10 +205,15 @@ def main():
     app.add_handler(CommandHandler("notifications", notifications_command))
     app.add_handler(CommandHandler("changelog", changelog_command))
     app.add_handler(CommandHandler("chatid", chatid_command))
+    app.add_handler(CommandHandler("version", version_command))
+    app.add_handler(CommandHandler("health", health_command))
 
     start_scheduler(app)
+    from utils.error_handler import error_handler
 
-    logger.info("❤️ ShaunMariaOS started successfully.")
+    app.add_error_handler(error_handler)
+
+    startup_banner()
     app.run_polling()
 
 

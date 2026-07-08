@@ -149,3 +149,16 @@
 ☁️ Cloud Automation
 
 🤖 AI Life Assistant
+## v1.3.2
+
+### Added
+- Global error handler
+- /version command
+- /health command
+- Professional startup banner
+
+### Improved
+- Railway deployment
+- Google authentication
+- Logging
+- Error handling
