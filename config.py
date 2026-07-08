@@ -36,10 +36,17 @@ GOOGLE_TOKEN_JSON = os.getenv("GOOGLE_TOKEN_JSON")
 
 
 def write_google_auth_files():
+    def write_google_auth_files():
     if GOOGLE_CREDENTIALS_JSON:
         with open(CREDENTIALS_FILE, "w", encoding="utf-8") as file:
             file.write(GOOGLE_CREDENTIALS_JSON)
+        print("credentials.json written")
+    else:
+        print("GOOGLE_CREDENTIALS_JSON not found")
 
     if GOOGLE_TOKEN_JSON:
         with open(TOKEN_FILE, "w", encoding="utf-8") as file:
             file.write(GOOGLE_TOKEN_JSON)
+        print("token.json written")
+    else:
+        print("GOOGLE_TOKEN_JSON not found")
