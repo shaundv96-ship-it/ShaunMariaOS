@@ -74,14 +74,16 @@ def extract_budget_values(rows):
     for row in rows:
         row_text = " ".join(str(cell) for cell in row)
 
-        if len(row) >= 4 and (
-            "Total Budget" in row_text
-            or "45,444" in row_text
-            or "45444" in row_text
-        ):
-            total_budget = number(row[1])
-            paid = number(row[2])
-            balance = number(row[3])
+       if (
+    len(row) >= 4
+    and str(row[0]).strip() == ""
+    and str(row[1]).strip().startswith("$")
+    and str(row[2]).strip().startswith("$")
+    and str(row[3]).strip().startswith("$")
+):
+    total_budget = number(row[1])
+    paid = number(row[2])
+    balance = number(row[3])
 
         if "Current Savings" in row_text and len(row) > 1:
             current_savings = number(row[1])
