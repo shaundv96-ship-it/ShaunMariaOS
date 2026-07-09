@@ -74,7 +74,9 @@ def get_wedding_budget():
     current_savings = "-"
 
     for row in rows:
-        if len(row) >= 4 and ("45,444" in str(row[1]) or "45444" in str(row[1])):
+        row_text = " ".join(str(cell) for cell in row)
+
+        if len(row) >= 4 and ("Total Budget" in row_text or "45,444" in row_text or "45444" in row_text):
             total_budget = row[1]
             paid = row[2]
             balance = row[3]
