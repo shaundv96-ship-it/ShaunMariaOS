@@ -28,13 +28,13 @@ def get_greeting():
     hour = sg_now().hour
 
     if hour < 12:
-        return "☀️ Good Morning Shaun"
+        return "☀️ Good Morning Shaun & Maria"
     if hour < 18:
-        return "🌤 Good Afternoon Shaun"
+        return "🌤 Good Afternoon Shaun & Maria"
     if hour < 22:
-        return "🌆 Good Evening Shaun"
+        return "🌆 Good Evening Shaun & Maria"
 
-    return "🌙 Good Night Shaun"
+    return "🌙 Good Night Shaun & Maria"
 
 
 def safe_finance_summary():
@@ -74,6 +74,10 @@ def safe_calendar_summary():
 
 def build_insights(finance, wedding, calendar):
     insights = []
+paid = wedding.get("paid", 0)
+total_budget = wedding.get("total_budget", 0)
+
+paid_percentage = (paid / total_budget * 100) if total_budget else 0
 
     if finance["available"] >= 1000:
         insights.append("💰 Cash flow is healthy.")
@@ -107,7 +111,7 @@ def get_dashboard_message():
             "💍 Wedding",
             f"{wedding['days_remaining']} days remaining\n"
             f"Guests: {wedding['guest_total']}\n"
-            f"Budget: {wedding['paid_percentage']:.1f}% paid",
+            f"Budget: {paid_percentage:.1f}% paid",1f}% paid",
         ),
         metric_widget(
             "💰 Money",
