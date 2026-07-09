@@ -9,6 +9,9 @@ from apps.calendar_engine import get_calendar_summary
 from apps.finance_engine import get_finance_summary
 from apps.wedding_engine import get_wedding_summary
 from utils.time import sg_now
+from utils.ui import build_screen
+from utils.widgets import info_widget, metric_widget
+
 
 VERSION = f"v{APP_VERSION} {APP_STAGE}"
 
@@ -88,10 +91,7 @@ def build_insights(finance, wedding, calendar):
     if calendar["event_count"] == 0:
         insights.append("📅 No calendar events today.")
 
-    if not insights:
-        insights.append("Everything looks good today.")
-
-    return insights
+    return "\n".join(f"• {insight}" for insight in insights) or "Everything looks good today."
 
 
 def get_dashboard_message():
@@ -100,72 +100,31 @@ def get_dashboard_message():
     calendar = safe_calendar_summary()
 
     today = sg_now().strftime("%A, %d %B %Y")
-    insights = build_insights(finance, wedding, calendar)
 
-    message = f"""❤️ <b>{APP_NAME}</b>
-{VERSION}
+    sections = [
+        info_widget("👋 Greeting", f"{get_greeting()}\n📅 {today}"),
+        metric_widget(
+            "💍 Wedding",
+            f"{wedding['days_remaining']} days remaining\n"
+            f"Guests: {wedding['guest_total']}\n"
+            f"Budget: {wedding['paid_percentage']:.1f}% paid",
+        ),
+        metric_widget(
+            "💰 Money",
+            f"Salary: {money(finance['salary'])}\n"
+            f"Available: {money(finance['available'])}\n"
+            f"Status: {finance['health']}",
+        ),
+        info_widget("📅 Today", calendar["next_event"]),
+        info_widget(
+            "🏠 Home",
+            f"{HOME_NAME}\nStatus: Booked ✅\nTOP: {HOME_TOP}",
+        ),
+        info_widget("🧠 Quick Insight", build_insights(finance, wedding, calendar)),
+    ]
 
-{get_greeting()}
-
-📅 {today}
-
-━━━━━━━━━━━━━━━━━━
-
-💒 <b>Wedding</b>
-
-⏳ {wedding['days_remaining']} days remaining
-
-👥 Guests
-{wedding['guest_total']}
-
-💰 Budget
-{wedding['paid_percentage']:.1f}% Paid
-{money(wedding.get('paid', 0))} / {money(wedding.get('total_budget', 0))}
-
-━━━━━━━━━━━━━━━━━━
-
-💵 <b>Finance</b>
-
-💰 Salary
-{money(finance['salary'])}
-
-💳 Available Cash
-{money(finance['available'])}
-
-📊 Cash Flow
-{finance['health']}
-
-━━━━━━━━━━━━━━━━━━
-
-📅 <b>Today</b>
-
-{calendar['next_event']}
-
-━━━━━━━━━━━━━━━━━━
-
-🏠 <b>Home</b>
-
-{HOME_NAME}
-
-Status
-Booked ✅
-
-TOP
-{HOME_TOP}
-
-━━━━━━━━━━━━━━━━━━
-
-🧠 <b>Quick Insight</b>
-"""
-
-    for insight in insights:
-        message += f"\n• {insight}"
-
-    message += f"""
-
-━━━━━━━━━━━━━━━━━━
-
-❤️ {VERSION}
-"""
-
-    return message
+    return build_screen(
+        f"❤️ <b>{APP_NAME}</b>",
+        sections,
+        f"{VERSION} • Choose an option below 👇",
+    )
