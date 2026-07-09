@@ -182,6 +182,10 @@ Live from Google Sheets"""
 
 def get_wedding_summary():
     rows = get_budget_sheet()
+    print("=== BUDGET SHEET DEBUG ===")
+for row in rows[:20]:
+    print(row)
+print("=== END BUDGET SHEET DEBUG ===")
     guest_rows = get_guestlist_sheet()
 
     wedding_date = WEDDING_DATE
