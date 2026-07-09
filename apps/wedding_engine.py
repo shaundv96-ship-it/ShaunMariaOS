@@ -24,6 +24,18 @@ def money(value):
         return str(value)
 
 
+def number(value):
+    try:
+        return float(str(value).replace("$", "").replace(",", "").strip())
+    except (ValueError, TypeError):
+        return 0
+
+
+def wedding_days_remaining():
+    today = sg_now().date()
+    return (WEDDING_DATE.date() - today).days
+
+
 def parse_time_to_datetime(time_text):
     text = str(time_text).strip().lower()
 
@@ -48,74 +60,41 @@ def parse_time_to_datetime(time_text):
     return None
 
 
-def get_wedding_dashboard():
-    today = sg_now().date()
-    days_remaining = (WEDDING_DATE.date() - today).days
-    return f"""💍 <b>Shaun & Maria Wedding</b>
-
-📅 <b>Wedding Date</b>
-31 October 2026
-
-⏳ <b>Countdown</b>
-{days_remaining} days to go
-
-Commands:
-/weddingbudget - Budget summary
-/guestlist - Guestlist summary
-/timeline - Wedding day timeline"""
-
-
-def get_wedding_budget():
-    rows = get_budget_sheet()
-
-    total_budget = "-"
-    paid = "-"
-    balance = "-"
-    current_savings = "-"
+def extract_budget_values(rows):
+    total_budget = 0
+    paid = 0
+    balance = 0
+    current_savings = 0
 
     for row in rows:
         row_text = " ".join(str(cell) for cell in row)
 
-        if len(row) >= 4 and ("Total Budget" in row_text or "45,444" in row_text or "45444" in row_text):
-            total_budget = row[1]
-            paid = row[2]
-            balance = row[3]
+        if len(row) >= 4 and (
+            "Total Budget" in row_text
+            or "45,444" in row_text
+            or "45444" in row_text
+        ):
+            total_budget = number(row[1])
+            paid = number(row[2])
+            balance = number(row[3])
 
-        row_text = " ".join(str(cell) for cell in row)
         if "Current Savings" in row_text and len(row) > 1:
-            current_savings = row[1]
+            current_savings = number(row[1])
 
-    try:
-        balance_num = float(str(balance).replace("$", "").replace(",", ""))
-        savings_num = float(str(current_savings).replace("$", "").replace(",", ""))
-        shortfall = balance_num - savings_num
-    except (ValueError, TypeError):
-        shortfall = "-"
+    shortfall = balance - current_savings
+    paid_percentage = (paid / total_budget * 100) if total_budget else 0
 
-    return f"""💰 <b>Wedding Budget</b>
-
-💍 <b>Total Budget</b>
-{money(total_budget)}
-
-✅ <b>Paid</b>
-{money(paid)}
-
-📉 <b>Balance</b>
-{money(balance)}
-
-🏦 <b>Current Savings</b>
-{money(current_savings)}
-
-⚠️ <b>Shortfall</b>
-{money(shortfall)}
-
-📊 <b>Source</b>
-Live from Google Sheets"""
+    return {
+        "total_budget": total_budget,
+        "paid": paid,
+        "balance": balance,
+        "current_savings": current_savings,
+        "shortfall": shortfall,
+        "paid_percentage": paid_percentage,
+    }
 
 
-def get_guestlist_summary():
-    rows = get_guestlist_sheet()
-
+def extract_guestlist_values(rows):
     shaun_total = "-"
     maria_total = "-"
     total_guests = "-"
@@ -157,89 +136,102 @@ def get_guestlist_summary():
             if value == "Balance:" and i + 1 < len(row):
                 cards_balance = row[i + 1]
 
-    return f"""👥 <b>Guestlist Summary</b>
+    return {
+        "shaun_total": shaun_total,
+        "maria_total": maria_total,
+        "total_guests": total_guests,
+        "seats_available": seats_available,
+        "cards_total": cards_total,
+        "cards_shaun": cards_shaun,
+        "cards_maria": cards_maria,
+        "cards_balance": cards_balance,
+    }
 
-👔 <b>Shaun</b>
-{shaun_total}
 
-👰 <b>Maria</b>
-{maria_total}
+def get_wedding_dashboard():
+    days_remaining = wedding_days_remaining()
 
-👥 <b>Total Guests</b>
-{total_guests}
+    return f"""💍 <b>Shaun & Maria Wedding</b>
 
-🪑 <b>Seats Available</b>
-{seats_available}
+📅 <b>Wedding Date</b>
+31 October 2026
 
-💌 <b>Physical Cards</b>
-Total: {cards_total}
-Shaun: {cards_shaun}
-Maria: {cards_maria}
-Balance: {cards_balance}
+⏳ <b>Countdown</b>
+{days_remaining} days to go
+
+Commands:
+/weddingbudget - Budget summary
+/guestlist - Guestlist summary
+/timeline - Wedding day timeline"""
+
+
+def get_wedding_budget():
+    budget = extract_budget_values(get_budget_sheet())
+
+    return f"""💰 <b>Wedding Budget</b>
+
+💍 <b>Total Budget</b>
+{money(budget["total_budget"])}
+
+✅ <b>Paid</b>
+{money(budget["paid"])}
+
+📉 <b>Balance</b>
+{money(budget["balance"])}
+
+🏦 <b>Current Savings</b>
+{money(budget["current_savings"])}
+
+⚠️ <b>Shortfall</b>
+{money(budget["shortfall"])}
 
 📊 <b>Source</b>
 Live from Google Sheets"""
 
+
+def get_guestlist_summary():
+    guestlist = extract_guestlist_values(get_guestlist_sheet())
+
+    return f"""👥 <b>Guestlist Summary</b>
+
+👔 <b>Shaun</b>
+{guestlist["shaun_total"]}
+
+👰 <b>Maria</b>
+{guestlist["maria_total"]}
+
+👥 <b>Total Guests</b>
+{guestlist["total_guests"]}
+
+🪑 <b>Seats Available</b>
+{guestlist["seats_available"]}
+
+💌 <b>Physical Cards</b>
+Total: {guestlist["cards_total"]}
+Shaun: {guestlist["cards_shaun"]}
+Maria: {guestlist["cards_maria"]}
+Balance: {guestlist["cards_balance"]}
+
+📊 <b>Source</b>
+Live from Google Sheets"""
+
+
 def get_wedding_summary():
-    rows = get_budget_sheet()
-    print("=== BUDGET SHEET DEBUG ===")
-for row in rows[:20]:
-    print(row)
-print("=== END BUDGET SHEET DEBUG ===")
-    guest_rows = get_guestlist_sheet()
-
-    wedding_date = WEDDING_DATE
-    today = sg_now().date()
-    days_remaining = (WEDDING_DATE.date() - today).days
-
-    total_budget = 0
-    paid = 0
-    balance = 0
-    current_savings = 0
-
-    for row in rows:
-        if len(row) >= 4 and ("45,444" in str(row[1]) or "45444" in str(row[1])):
-            try:
-                total_budget = float(str(row[1]).replace("$", "").replace(",", ""))
-                paid = float(str(row[2]).replace("$", "").replace(",", ""))
-                balance = float(str(row[3]).replace("$", "").replace(",", ""))
-            except:
-                pass
-
-        row_text = " ".join(str(cell) for cell in row)
-        if "Current Savings" in row_text and len(row) > 1:
-            try:
-                current_savings = float(str(row[1]).replace("$", "").replace(",", ""))
-            except:
-                pass
-
-    guest_total = "-"
-    seats_available = "-"
-
-    for row in guest_rows:
-        for i, cell in enumerate(row):
-            value = str(cell).strip()
-
-            if "Total as of" in value and i + 1 < len(row):
-                guest_total = row[i + 1]
-
-            if value == "seats available" and i + 1 < len(row):
-                seats_available = row[i + 1]
-
-    paid_percentage = (paid / total_budget * 100) if total_budget else 0
-    shortfall = balance - current_savings
+    budget = extract_budget_values(get_budget_sheet())
+    guestlist = extract_guestlist_values(get_guestlist_sheet())
 
     return {
-        "days_remaining": days_remaining,
-        "total_budget": total_budget,
-        "paid": paid,
-        "balance": balance,
-        "current_savings": current_savings,
-        "shortfall": shortfall,
-        "paid_percentage": paid_percentage,
-        "guest_total": guest_total,
-        "seats_available": seats_available,
+        "days_remaining": wedding_days_remaining(),
+        "total_budget": budget["total_budget"],
+        "paid": budget["paid"],
+        "balance": budget["balance"],
+        "current_savings": budget["current_savings"],
+        "shortfall": budget["shortfall"],
+        "paid_percentage": budget["paid_percentage"],
+        "guest_total": guestlist["total_guests"],
+        "seats_available": guestlist["seats_available"],
     }
+
 
 def get_wedding_timeline():
     rows = get_timeline_sheet()
@@ -279,7 +271,7 @@ def get_wedding_timeline():
 
     events.sort(key=lambda event: parse_time_to_datetime(event["time"]))
 
-    days_remaining = (WEDDING_DATE.date() - now.date()).days
+    days_remaining = wedding_days_remaining()
 
     message = "❤️ <b>Wedding Operations Timeline</b>\n\n"
 
