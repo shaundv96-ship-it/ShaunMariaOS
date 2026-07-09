@@ -14,7 +14,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-
+from utils.time import sg_now
 from config import BOT_TOKEN, write_google_auth_files
 from apps.about_engine import get_about
 from apps.bills_engine import get_bills_dashboard
@@ -99,9 +99,9 @@ ShaunMariaOS: Running"""
 
 
 async def countdown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    today = sg_now()
-    wedding_date = datetime(2026, 10, 31)
-    wedding_days = (wedding_date - today).days
+   today = sg_now().date()
+wedding_date = datetime(2026, 10, 31).date()
+wedding_days = (wedding_date - today).days
 
     message = f"""❤️ <b>Shaun & Maria Countdown</b>
 
@@ -244,6 +244,26 @@ async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML",
     )
 
+async def text_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+
+    if text == "📅 Today":
+        message = format_today_events_for_telegram()
+    elif text == "💍 Wedding":
+        message = get_wedding_dashboard()
+    elif text == "💰 Money":
+        message = get_finance_dashboard()
+    elif text == "❤️ Dashboard":
+        message = get_dashboard_message()
+    elif text == "🏠 Home":
+        message = "🏠 <b>HomeOS</b>\n\nComing soon."
+    elif text == "⚙️ More":
+        message = get_health()
+    else:
+        return
+
+    await update.message.reply_text(message, parse_mode="HTML")
+
 
 def register_handlers(app):
     app.add_handler(CommandHandler("help", help_command))
@@ -269,6 +289,7 @@ def register_handlers(app):
     app.add_handler(CommandHandler("chatid", chatid_command))
     app.add_handler(CommandHandler("version", version_command))
     app.add_handler(CommandHandler("health", health_command))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_button_handler))
 
     app.add_handler(CallbackQueryHandler(handle_menu_button))
     app.add_error_handler(error_handler)
