@@ -99,9 +99,9 @@ ShaunMariaOS: Running"""
 
 
 async def countdown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-   today = sg_now().date()
-wedding_date = datetime(2026, 10, 31).date()
-wedding_days = (wedding_date - today).days
+    today = sg_now().date()
+    wedding_date = datetime(2026, 10, 31).date()
+    wedding_days = (wedding_date - today).days
 
     message = f"""❤️ <b>Shaun & Maria Countdown</b>
 
@@ -110,8 +110,8 @@ wedding_days = (wedding_date - today).days
 
 🏠 BTO:
 Estimated TOP: Q3 2030"""
-    await update.message.reply_text(message, parse_mode="HTML")
 
+    await update.message.reply_text(message, parse_mode="HTML")
 
 async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
