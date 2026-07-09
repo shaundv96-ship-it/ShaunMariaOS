@@ -67,13 +67,13 @@ def get_events_between(start_time, end_time):
 
 
 def get_today_events():
-    now = datetime.now(timezone.utc)
+    now = sg_now(timezone.utc)
     end_of_day = now.replace(hour=15, minute=59, second=59, microsecond=0)
     return get_events_between(now, end_of_day)
 
 
 def get_tomorrow_events():
-    now = datetime.now(timezone.utc)
+    now = sg_now(timezone.utc)
     tomorrow = now + timedelta(days=1)
 
     start_of_tomorrow = tomorrow.replace(hour=0, minute=0, second=0, microsecond=0)

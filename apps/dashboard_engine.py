@@ -4,13 +4,11 @@ ShaunMariaOS
 Dashboard Engine
 """
 
-from datetime import datetime
-
 from app_config import APP_NAME, APP_VERSION, APP_STAGE, HOME_NAME, HOME_TOP
 from apps.calendar_engine import get_calendar_summary
 from apps.finance_engine import get_finance_summary
 from apps.wedding_engine import get_wedding_summary
-
+from utils.time import sg_now
 
 VERSION = f"v{APP_VERSION} {APP_STAGE}"
 
@@ -24,7 +22,7 @@ def money(value):
 
 
 def get_greeting():
-    hour = datetime.now().hour
+    hour = sg_now().hour
 
     if hour < 12:
         return "☀️ Good Morning Shaun"
@@ -43,8 +41,6 @@ def safe_finance_summary():
         return {
             "salary": 0,
             "available": 0,
-            "insurance": 0,
-            "commitments": 0,
             "health": "⚠️ Finance unavailable",
         }
 
@@ -103,7 +99,7 @@ def get_dashboard_message():
     wedding = safe_wedding_summary()
     calendar = safe_calendar_summary()
 
-    today = datetime.now().strftime("%A, %d %B %Y")
+    today = sg_now().strftime("%A, %d %B %Y")
     insights = build_insights(finance, wedding, calendar)
 
     message = f"""❤️ <b>{APP_NAME}</b>

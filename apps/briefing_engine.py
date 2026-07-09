@@ -5,7 +5,9 @@ Briefing Engine
 """
 
 from apps.dashboard_engine import get_dashboard_message
+from utils.time import sg_now
 
+now = sg_now()
 
 def get_daily_briefing():
     dashboard = get_dashboard_message()

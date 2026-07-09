@@ -11,6 +11,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
+    MessageHandler,
+    filters,
 )
 
 from config import BOT_TOKEN, write_google_auth_files
@@ -97,7 +99,7 @@ ShaunMariaOS: Running"""
 
 
 async def countdown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    today = datetime.now()
+    today = sg_now()
     wedding_date = datetime(2026, 10, 31)
     wedding_days = (wedding_date - today).days
 

@@ -49,7 +49,7 @@ def parse_time_to_datetime(time_text):
 
 
 def get_wedding_dashboard():
-    today = datetime.now()
+    today = sg_now()
     days_remaining = (WEDDING_DATE - today).days
 
     return f"""💍 <b>Shaun & Maria Wedding</b>
@@ -184,7 +184,7 @@ def get_wedding_summary():
     guest_rows = get_guestlist_sheet()
 
     wedding_date = WEDDING_DATE
-    today = datetime.now()
+    today = sg_now()
     days_remaining = (wedding_date - today).days
 
     total_budget = 0
@@ -238,7 +238,7 @@ def get_wedding_summary():
 
 def get_wedding_timeline():
     rows = get_timeline_sheet()
-    now = datetime.now()
+    now = sg_now()
 
     events = []
 
