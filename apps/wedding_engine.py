@@ -61,6 +61,16 @@ def parse_time_to_datetime(time_text):
 
 
 def extract_budget_values(rows):
+    
+   def extract_budget_values(rows):
+
+    print("\n========== WEDDING BUDGET ==========")
+
+    for row in rows:
+        print(row)
+
+    print("====================================\n")
+
     total_budget = 0
     paid = 0
     balance = 0
