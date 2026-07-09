@@ -11,7 +11,7 @@ from apps.database_engine import (
     get_guestlist_sheet,
     get_timeline_sheet,
 )
-
+from utils.time import sg_now
 
 WEDDING_DATE = datetime(2026, 10, 31)
 

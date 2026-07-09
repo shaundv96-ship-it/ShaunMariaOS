@@ -6,6 +6,7 @@ Calendar Engine
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from utils.time import sg_now
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
@@ -67,13 +68,13 @@ def get_events_between(start_time, end_time):
 
 
 def get_today_events():
-    now = sg_now(timezone.utc)
+    now = sg_now()
     end_of_day = now.replace(hour=15, minute=59, second=59, microsecond=0)
     return get_events_between(now, end_of_day)
 
 
 def get_tomorrow_events():
-    now = sg_now(timezone.utc)
+    now = sg_now()
     tomorrow = now + timedelta(days=1)
 
     start_of_tomorrow = tomorrow.replace(hour=0, minute=0, second=0, microsecond=0)
