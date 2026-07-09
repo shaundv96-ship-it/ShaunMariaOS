@@ -72,12 +72,21 @@ def safe_calendar_summary():
         }
 
 
+def get_paid_percentage(wedding):
+    paid = wedding.get("paid", 0)
+    total_budget = wedding.get("total_budget", 0)
+
+    try:
+        paid = float(paid)
+        total_budget = float(total_budget)
+        return (paid / total_budget * 100) if total_budget else 0
+    except (ValueError, TypeError):
+        return 0
+
+
 def build_insights(finance, wedding, calendar):
     insights = []
-paid = wedding.get("paid", 0)
-total_budget = wedding.get("total_budget", 0)
-
-paid_percentage = (paid / total_budget * 100) if total_budget else 0
+    paid_percentage = get_paid_percentage(wedding)
 
     if finance["available"] >= 1000:
         insights.append("💰 Cash flow is healthy.")
@@ -89,7 +98,7 @@ paid_percentage = (paid / total_budget * 100) if total_budget else 0
     if wedding["seats_available"] != "-":
         insights.append(f"💒 {wedding['seats_available']} wedding seats remaining.")
 
-    if wedding["paid_percentage"] >= 40:
+    if paid_percentage >= 40:
         insights.append("✅ Wedding budget is progressing well.")
 
     if calendar["event_count"] == 0:
@@ -104,6 +113,7 @@ def get_dashboard_message():
     calendar = safe_calendar_summary()
 
     today = sg_now().strftime("%A, %d %B %Y")
+    paid_percentage = get_paid_percentage(wedding)
 
     sections = [
         info_widget("👋 Greeting", f"{get_greeting()}\n📅 {today}"),
@@ -111,7 +121,7 @@ def get_dashboard_message():
             "💍 Wedding",
             f"{wedding['days_remaining']} days remaining\n"
             f"Guests: {wedding['guest_total']}\n"
-            f"Budget: {paid_percentage:.1f}% paid",1f}% paid",
+            f"Budget: {paid_percentage:.1f}% paid",
         ),
         metric_widget(
             "💰 Money",
@@ -130,5 +140,5 @@ def get_dashboard_message():
     return build_screen(
         f"❤️ <b>{APP_NAME}</b>",
         sections,
-        f"{VERSION} • Choose an option below 👇",
+        VERSION,
     )
