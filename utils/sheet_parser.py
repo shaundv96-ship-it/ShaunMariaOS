@@ -181,7 +181,7 @@ def get_finance_summary():
         "health": health,
     }
 
-    def get_bills_summary():
+   def get_bills_summary():
     rows = get_finance_sheet()
 
     bills = []
@@ -203,11 +203,7 @@ def get_finance_summary():
         if category != "Bills" or status != "active":
             continue
 
-        try:
-            amount = number(row[4])
-        except Exception:
-            continue
-
+        amount = number(row[4])
         total += amount
 
         bills.append({
