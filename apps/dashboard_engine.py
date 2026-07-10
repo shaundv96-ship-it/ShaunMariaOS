@@ -11,9 +11,7 @@ from app_config import (
     HOME_NAME,
     HOME_TOP,
 )
-from apps.calendar_engine import get_calendar_summary
-from apps.finance_engine import get_finance_summary
-from apps.wedding_engine import get_wedding_summary
+from apps.summary_engine import get_system_summary
 from apps.insight_engine import build_insights
 from apps.greeting_engine import get_greeting
 from utils.time import sg_now
@@ -85,9 +83,11 @@ def safe_insights():
 
 def get_dashboard_message():
     """Build the main ShaunMariaOS dashboard."""
-    finance = safe_finance_summary()
-    wedding = safe_wedding_summary()
-    calendar = safe_calendar_summary()
+    summary = get_system_summary()
+
+    finance = summary["finance"]
+    wedding = summary["wedding"]
+    calendar = summary["calendar"]
 
     today = sg_now().strftime("%A, %d %B %Y")
 
