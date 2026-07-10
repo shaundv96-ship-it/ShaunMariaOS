@@ -7,37 +7,44 @@ Shared parser for Google Sheets.
 
 from apps.database_engine import (
     get_budget_sheet,
+    get_finance_sheet,
     get_guestlist_sheet,
 )
 from apps.status_engine import finance_status
 
+
 def number(value):
     """
-    Converts:
+    Convert values such as:
     $4,877.50
     4,877.50
     4877.50
 
-    into float.
+    into a float.
     """
     try:
-        return float(str(value).replace("$", "").replace(",", "").strip())
+        return float(
+            str(value)
+            .replace("$", "")
+            .replace(",", "")
+            .strip()
+        )
     except (ValueError, TypeError):
-        return 0
+        return 0.0
 
 
-# ----------------------------------------------------
+# ====================================================
 # Wedding Budget
-# ----------------------------------------------------
+# ====================================================
 
 def get_budget_summary():
     rows = get_budget_sheet()
 
     budget = {
-        "total_budget": 0,
-        "paid": 0,
-        "balance": 0,
-        "current_savings": 0,
+        "total_budget": 0.0,
+        "paid": 0.0,
+        "balance": 0.0,
+        "current_savings": 0.0,
     }
 
     for row in rows:
@@ -56,7 +63,7 @@ def get_budget_summary():
             budget["paid"] = number(row[2])
             budget["balance"] = number(row[3])
 
-        if "Current Savings" in row_text:
+        if "Current Savings" in row_text and len(row) > 1:
             budget["current_savings"] = number(row[1])
 
     budget["shortfall"] = (
@@ -66,15 +73,15 @@ def get_budget_summary():
     budget["paid_percentage"] = (
         budget["paid"] / budget["total_budget"] * 100
         if budget["total_budget"]
-        else 0
+        else 0.0
     )
 
     return budget
 
 
-# ----------------------------------------------------
+# ====================================================
 # Guestlist
-# ----------------------------------------------------
+# ====================================================
 
 def get_guest_summary():
     rows = get_guestlist_sheet()
@@ -90,23 +97,23 @@ def get_guest_summary():
         "cards_balance": "-",
     }
 
-    counter = 0
+    total_counter = 0
 
     for row in rows:
-
-        for i, cell in enumerate(row):
-
+        for index, cell in enumerate(row):
             value = str(cell).strip()
-
-            next_value = row[i + 1] if i + 1 < len(row) else "-"
+            next_value = (
+                row[index + 1]
+                if index + 1 < len(row)
+                else "-"
+            )
 
             if value == "Total:":
-                counter += 1
+                total_counter += 1
 
-                if counter == 1:
+                if total_counter == 1:
                     guest["shaun_total"] = next_value
-
-                elif counter == 2:
+                elif total_counter == 2:
                     guest["maria_total"] = next_value
 
             elif "Total as of" in value:
@@ -129,46 +136,42 @@ def get_guest_summary():
 
     return guest
 
-from apps.database_engine import get_finance_sheet
 
+# ====================================================
+# Finance
+# ====================================================
 
 def get_finance_summary():
     rows = get_finance_sheet()
 
-    income = 0
-    savings = 0
-    bills = 0
-    insurance = 0
+    income = 0.0
+    savings = 0.0
+    bills = 0.0
+    insurance = 0.0
 
     for row in rows:
         if len(row) < 9:
             continue
 
         category = str(row[1]).strip()
-        amount = row[4]
+        amount = number(row[4])
         status = str(row[8]).strip().lower()
 
         if status != "active":
             continue
 
-        try:
-            value = float(str(amount).replace("$", "").replace(",", ""))
-        except (ValueError, TypeError):
-            continue
-
         match category:
             case "Income":
-                income += value
+                income += amount
             case "Savings":
-                savings += value
+                savings += amount
             case "Bills":
-                bills += value
+                bills += amount
             case "Insurance":
-                insurance += value
+                insurance += amount
 
     commitments = savings + bills + insurance
     available = income - commitments
-
     health = finance_status(available)
 
     return {
@@ -181,11 +184,16 @@ def get_finance_summary():
         "health": health,
     }
 
-   def get_bills_summary():
+
+# ====================================================
+# Bills
+# ====================================================
+
+def get_bills_summary():
     rows = get_finance_sheet()
 
     bills = []
-    total = 0
+    total = 0.0
 
     priority_order = {
         "HIGH": 0,
@@ -206,12 +214,14 @@ def get_finance_summary():
         amount = number(row[4])
         total += amount
 
-        bills.append({
-            "item": str(row[2]).strip(),
-            "amount": amount,
-            "due": str(row[5]).strip(),
-            "priority": str(row[7]).strip().upper(),
-        })
+        bills.append(
+            {
+                "item": str(row[2]).strip(),
+                "amount": amount,
+                "due": str(row[5]).strip(),
+                "priority": str(row[7]).strip().upper(),
+            }
+        )
 
     bills.sort(
         key=lambda bill: priority_order.get(
@@ -225,11 +235,16 @@ def get_finance_summary():
         "bills": bills,
     }
 
+
+# ====================================================
+# Insurance
+# ====================================================
+
 def get_insurance_summary():
     rows = get_finance_sheet()
 
     policies = []
-    active_total = 0
+    active_total = 0.0
 
     for row in rows:
         if len(row) < 9:
@@ -240,25 +255,20 @@ def get_insurance_summary():
         if category != "Insurance":
             continue
 
-        item = str(row[2]).strip()
-        owner = str(row[3]).strip()
-        amount = number(row[4])
-        due = str(row[5]).strip()
-        frequency = str(row[6]).strip()
         status = str(row[8]).strip()
-
         is_active = status.lower() == "active"
+        amount = number(row[4])
 
         if is_active:
             active_total += amount
 
         policies.append(
             {
-                "item": item,
-                "owner": owner,
+                "item": str(row[2]).strip(),
+                "owner": str(row[3]).strip(),
                 "amount": amount,
-                "due": due,
-                "frequency": frequency,
+                "due": str(row[5]).strip(),
+                "frequency": str(row[6]).strip(),
                 "status": status,
                 "is_active": is_active,
             }
@@ -276,7 +286,8 @@ def get_insurance_summary():
         "policies": policies,
         "active_total": active_total,
         "active_count": sum(
-            policy["is_active"] for policy in policies
+            1 for policy in policies
+            if policy["is_active"]
         ),
         "policy_count": len(policies),
     }
