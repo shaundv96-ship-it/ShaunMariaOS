@@ -4,10 +4,17 @@ ShaunMariaOS
 Dashboard Engine
 """
 
-from app_config import APP_NAME, APP_VERSION, APP_STAGE, HOME_NAME, HOME_TOP
+from app_config import (
+    APP_NAME,
+    APP_STAGE,
+    APP_VERSION,
+    HOME_NAME,
+    HOME_TOP,
+)
 from apps.calendar_engine import get_calendar_summary
 from apps.finance_engine import get_finance_summary
 from apps.wedding_engine import get_wedding_summary
+from engines.insight_engine import build_insights
 from utils.time import sg_now
 from utils.ui import build_screen
 from utils.widgets import info_widget, metric_widget
@@ -17,14 +24,15 @@ VERSION = f"v{APP_VERSION} {APP_STAGE}"
 
 
 def money(value):
+    """Format a numeric value as Singapore-dollar currency."""
     try:
-        amount = float(value)
-        return f"${amount:,.2f}"
+        return f"${float(value):,.2f}"
     except (ValueError, TypeError):
         return "$0.00"
 
 
 def get_greeting():
+    """Return a greeting based on the current Singapore time."""
     hour = sg_now().hour
 
     if hour < 12:
@@ -38,17 +46,23 @@ def get_greeting():
 
 
 def safe_finance_summary():
+    """Return finance data without allowing dashboard failure."""
     try:
         return get_finance_summary()
     except Exception:
         return {
             "salary": 0,
+            "savings": 0,
+            "bills": 0,
+            "insurance": 0,
+            "commitments": 0,
             "available": 0,
             "health": "⚠️ Finance unavailable",
         }
 
 
 def safe_wedding_summary():
+    """Return wedding data without allowing dashboard failure."""
     try:
         return get_wedding_summary()
     except Exception:
@@ -56,85 +70,80 @@ def safe_wedding_summary():
             "days_remaining": "-",
             "guest_total": "-",
             "seats_available": "-",
-            "paid": 0,
             "total_budget": 0,
+            "paid": 0,
+            "balance": 0,
+            "current_savings": 0,
+            "shortfall": 0,
             "paid_percentage": 0,
         }
 
 
 def safe_calendar_summary():
+    """Return calendar data without allowing dashboard failure."""
     try:
         return get_calendar_summary()
     except Exception:
         return {
             "event_count": 0,
-            "next_event": "Calendar unavailable",
+            "next_event": "⚠️ Calendar unavailable",
         }
 
 
-def get_paid_percentage(wedding):
-    paid = wedding.get("paid", 0)
-    total_budget = wedding.get("total_budget", 0)
-
+def safe_insights():
+    """Return generated insights without allowing dashboard failure."""
     try:
-        paid = float(paid)
-        total_budget = float(total_budget)
-        return (paid / total_budget * 100) if total_budget else 0
-    except (ValueError, TypeError):
-        return 0
+        insights = build_insights()
+    except Exception:
+        return "⚠️ Insights temporarily unavailable."
 
+    if not insights:
+        return "Everything looks good today."
 
-def build_insights(finance, wedding, calendar):
-    insights = []
-    paid_percentage = get_paid_percentage(wedding)
-
-    if finance["available"] >= 1000:
-        insights.append("💰 Cash flow is healthy.")
-    elif finance["available"] > 0:
-        insights.append("💰 Cash flow is manageable.")
-    else:
-        insights.append("⚠️ Review monthly cash flow.")
-
-    if wedding["seats_available"] != "-":
-        insights.append(f"💒 {wedding['seats_available']} wedding seats remaining.")
-
-    if paid_percentage >= 40:
-        insights.append("✅ Wedding budget is progressing well.")
-
-    if calendar["event_count"] == 0:
-        insights.append("📅 No calendar events today.")
-
-    return "\n".join(f"• {insight}" for insight in insights) or "Everything looks good today."
+    return "\n".join(f"• {insight}" for insight in insights)
 
 
 def get_dashboard_message():
+    """Build the main ShaunMariaOS dashboard."""
     finance = safe_finance_summary()
     wedding = safe_wedding_summary()
     calendar = safe_calendar_summary()
 
     today = sg_now().strftime("%A, %d %B %Y")
-    paid_percentage = get_paid_percentage(wedding)
 
     sections = [
-        info_widget("👋 Greeting", f"{get_greeting()}\n📅 {today}"),
+        info_widget(
+            "👋 Greeting",
+            f"{get_greeting()}\n📅 {today}",
+        ),
         metric_widget(
             "💍 Wedding",
             f"{wedding['days_remaining']} days remaining\n"
             f"Guests: {wedding['guest_total']}\n"
-            f"Budget: {paid_percentage:.1f}% paid",
+            f"Budget: {wedding['paid_percentage']:.1f}% paid\n"
+            f"Balance: {money(wedding['balance'])}",
         ),
         metric_widget(
             "💰 Money",
-            f"Salary: {money(finance['salary'])}\n"
+            f"Income: {money(finance['salary'])}\n"
+            f"Commitments: {money(finance['commitments'])}\n"
             f"Available: {money(finance['available'])}\n"
             f"Status: {finance['health']}",
         ),
-        info_widget("📅 Today", calendar["next_event"]),
+        info_widget(
+            "📅 Today",
+            calendar["next_event"],
+        ),
         info_widget(
             "🏠 Home",
-            f"{HOME_NAME}\nStatus: Booked ✅\nTOP: {HOME_TOP}",
+            f"{HOME_NAME}\n"
+            f"Status: Booked ✅\n"
+            f"TOP: {HOME_TOP}",
         ),
-        info_widget("🧠 Quick Insight", build_insights(finance, wedding, calendar)),
+        info_widget(
+            "🧠 Quick Insights",
+            safe_insights(),
+        ),
     ]
 
     return build_screen(
