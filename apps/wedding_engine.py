@@ -6,22 +6,19 @@ Wedding Engine
 
 from datetime import datetime
 
-from apps.database_engine import get_budget_sheet, get_guestlist_sheet, get_timeline_sheet
+from apps.database_engine import get_timeline_sheet
+from utils.sheet_parser import get_budget_summary, get_guest_summary
 from utils.time import sg_now
 
 WEDDING_DATE = datetime(2026, 10, 31)
 
 
-def number(value):
-    try:
-        return float(str(value).replace("$", "").replace(",", "").strip())
-    except (ValueError, TypeError):
-        return 0
-
-
 def money(value):
-    amount = number(value)
-    return f"${amount:,.2f}"
+    try:
+        amount = float(value)
+        return f"${amount:,.2f}"
+    except (ValueError, TypeError):
+        return "$0.00"
 
 
 def wedding_days_remaining():
@@ -34,7 +31,15 @@ def parse_time_to_datetime(time_text):
     if not text:
         return None
 
-    for fmt in ["%I.%M%p", "%I:%M%p", "%I.%M %p", "%I:%M %p", "%H:%M"]:
+    formats = [
+        "%I.%M%p",
+        "%I:%M%p",
+        "%I.%M %p",
+        "%I:%M %p",
+        "%H:%M",
+    ]
+
+    for fmt in formats:
         try:
             parsed_time = datetime.strptime(text, fmt).time()
             return datetime.combine(WEDDING_DATE.date(), parsed_time)
@@ -42,90 +47,6 @@ def parse_time_to_datetime(time_text):
             continue
 
     return None
-
-
-def extract_budget_values(rows):
-    budget = {
-        "total_budget": 0,
-        "paid": 0,
-        "balance": 0,
-        "current_savings": 0,
-    }
-
-    for row in rows:
-        row_text = " ".join(str(cell) for cell in row)
-
-        is_total_row = (
-            len(row) >= 4
-            and str(row[0]).strip() == ""
-            and str(row[1]).strip().startswith("$")
-            and str(row[2]).strip().startswith("$")
-            and str(row[3]).strip().startswith("$")
-        )
-
-        if is_total_row:
-            budget["total_budget"] = number(row[1])
-            budget["paid"] = number(row[2])
-            budget["balance"] = number(row[3])
-
-        if "Current Savings" in row_text and len(row) > 1:
-            budget["current_savings"] = number(row[1])
-
-    budget["shortfall"] = budget["balance"] - budget["current_savings"]
-    budget["paid_percentage"] = (
-        budget["paid"] / budget["total_budget"] * 100
-        if budget["total_budget"]
-        else 0
-    )
-
-    return budget
-
-
-def extract_guestlist_values(rows):
-    guestlist = {
-        "shaun_total": "-",
-        "maria_total": "-",
-        "total_guests": "-",
-        "seats_available": "-",
-        "cards_total": "-",
-        "cards_shaun": "-",
-        "cards_maria": "-",
-        "cards_balance": "-",
-    }
-
-    total_counter = 0
-
-    for row in rows:
-        for index, cell in enumerate(row):
-            value = str(cell).strip()
-            next_value = row[index + 1] if index + 1 < len(row) else "-"
-
-            if value == "Total:":
-                total_counter += 1
-                if total_counter == 1:
-                    guestlist["shaun_total"] = next_value
-                elif total_counter == 2:
-                    guestlist["maria_total"] = next_value
-
-            elif "Total as of" in value:
-                guestlist["total_guests"] = next_value
-
-            elif value == "seats available":
-                guestlist["seats_available"] = next_value
-
-            elif value == "Cards:":
-                guestlist["cards_total"] = next_value
-
-            elif value == "Shaun:":
-                guestlist["cards_shaun"] = next_value
-
-            elif value == "Maria:":
-                guestlist["cards_maria"] = next_value
-
-            elif value == "Balance:":
-                guestlist["cards_balance"] = next_value
-
-    return guestlist
 
 
 def get_wedding_dashboard():
@@ -144,7 +65,7 @@ Commands:
 
 
 def get_wedding_budget():
-    budget = extract_budget_values(get_budget_sheet())
+    budget = get_budget_summary()
 
     return f"""💰 <b>Wedding Budget</b>
 
@@ -168,41 +89,41 @@ Live from Google Sheets"""
 
 
 def get_guestlist_summary():
-    guestlist = extract_guestlist_values(get_guestlist_sheet())
+    guest = get_guest_summary()
 
     return f"""👥 <b>Guestlist Summary</b>
 
 👔 <b>Shaun</b>
-{guestlist["shaun_total"]}
+{guest["shaun_total"]}
 
 👰 <b>Maria</b>
-{guestlist["maria_total"]}
+{guest["maria_total"]}
 
 👥 <b>Total Guests</b>
-{guestlist["total_guests"]}
+{guest["total_guests"]}
 
 🪑 <b>Seats Available</b>
-{guestlist["seats_available"]}
+{guest["seats_available"]}
 
 💌 <b>Physical Cards</b>
-Total: {guestlist["cards_total"]}
-Shaun: {guestlist["cards_shaun"]}
-Maria: {guestlist["cards_maria"]}
-Balance: {guestlist["cards_balance"]}
+Total: {guest["cards_total"]}
+Shaun: {guest["cards_shaun"]}
+Maria: {guest["cards_maria"]}
+Balance: {guest["cards_balance"]}
 
 📊 <b>Source</b>
 Live from Google Sheets"""
 
 
 def get_wedding_summary():
-    budget = extract_budget_values(get_budget_sheet())
-    guestlist = extract_guestlist_values(get_guestlist_sheet())
+    budget = get_budget_summary()
+    guest = get_guest_summary()
 
     return {
         **budget,
         "days_remaining": wedding_days_remaining(),
-        "guest_total": guestlist["total_guests"],
-        "seats_available": guestlist["seats_available"],
+        "guest_total": guest["total_guests"],
+        "seats_available": guest["seats_available"],
     }
 
 
@@ -218,72 +139,112 @@ def build_timeline_events(rows):
         ]
 
         for time_text, activity, poc, section in timeline_items:
-            if parse_time_to_datetime(time_text) and activity:
+            event_time = parse_time_to_datetime(time_text)
+
+            if event_time and activity:
                 events.append(
                     {
                         "time": time_text,
+                        "datetime": event_time,
                         "activity": activity,
                         "poc": poc,
                         "section": section,
                     }
                 )
 
-    return sorted(events, key=lambda event: parse_time_to_datetime(event["time"]))
+    return sorted(events, key=lambda event: event["datetime"])
+
+
+def format_timeline_event(event):
+    message = f"{event['time']} - {event['activity']}"
+
+    if event["poc"]:
+        message += f"\nPOC: {event['poc']}"
+
+    return message
 
 
 def get_wedding_timeline():
     events = build_timeline_events(get_timeline_sheet())
-    now = sg_now()
-    days_remaining = wedding_days_remaining()
 
     if not events:
         return "⚠️ No timeline items found."
 
-    message = "❤️ <b>Wedding Operations Timeline</b>\n\n"
+    now = sg_now()
+    days_remaining = wedding_days_remaining()
+
+    lines = ["❤️ <b>Wedding Operations Timeline</b>", ""]
 
     if days_remaining > 0:
-        first = events[0]
-        message += f"⏳ <b>Wedding Countdown</b>\n{days_remaining} days to go\n\n"
-        message += f"⏭️ <b>First Task</b>\n{first['time']} - {first['activity']}\n"
-        if first["poc"]:
-            message += f"POC: {first['poc']}\n"
-        message += "\n"
+        lines.extend(
+            [
+                "⏳ <b>Wedding Countdown</b>",
+                f"{days_remaining} days to go",
+                "",
+                "⏭️ <b>First Task</b>",
+                format_timeline_event(events[0]),
+                "",
+            ]
+        )
 
     elif days_remaining == 0:
-        message += "🟢 <b>Wedding Day Live Mode</b>\n\n"
+        lines.extend(
+            [
+                "🟢 <b>Wedding Day Live Mode</b>",
+                "",
+            ]
+        )
 
         current_event = None
         next_event = None
 
         for event in events:
-            event_dt = parse_time_to_datetime(event["time"])
-            if event_dt and event_dt <= now:
+            event_datetime = event["datetime"]
+
+            if event_datetime <= now:
                 current_event = event
-            elif event_dt and event_dt > now:
+            elif event_datetime > now:
                 next_event = event
                 break
 
         if current_event:
-            message += f"📍 <b>Current / Latest Task</b>\n{current_event['time']} - {current_event['activity']}\n"
-            if current_event["poc"]:
-                message += f"POC: {current_event['poc']}\n"
-            message += "\n"
+            lines.extend(
+                [
+                    "📍 <b>Current / Latest Task</b>",
+                    format_timeline_event(current_event),
+                    "",
+                ]
+            )
 
         if next_event:
-            message += f"⏭️ <b>Next Task</b>\n{next_event['time']} - {next_event['activity']}\n"
-            if next_event["poc"]:
-                message += f"POC: {next_event['poc']}\n"
-            message += "\n"
+            lines.extend(
+                [
+                    "⏭️ <b>Next Task</b>",
+                    format_timeline_event(next_event),
+                    "",
+                ]
+            )
 
     else:
-        message += "📦 <b>Wedding timeline archived.</b>\n\n"
+        lines.extend(
+            [
+                "📦 <b>Wedding timeline archived.</b>",
+                "",
+            ]
+        )
 
-    message += "📋 <b>Full Timeline</b>\n"
+    lines.append("📋 <b>Full Timeline</b>")
 
     for event in events:
         poc_text = f" — {event['poc']}" if event["poc"] else ""
-        message += f"\n{event['time']} - {event['activity']}{poc_text}"
+        lines.append(f"{event['time']} - {event['activity']}{poc_text}")
 
-    message += "\n\n📊 <b>Source</b>\nLive from Google Sheets"
+    lines.extend(
+        [
+            "",
+            "📊 <b>Source</b>",
+            "Live from Google Sheets",
+        ]
+    )
 
-    return message
+    return "\n".join(lines)
