@@ -28,7 +28,7 @@ from apps.database_engine import get_database_status
 from apps.finance_engine import get_finance_dashboard
 from apps.health_engine import get_health
 from apps.insurance_engine import get_insurance_dashboard
-from apps.menu_keyboard import get_main_menu_buttons
+from apps.menu_keyboard import (get_main_menu_buttons,get_persistent_main_keyboard,)
 from apps.menu_navigation import handle_menu_button
 from apps.notification_engine import get_notification_message
 from apps.salary_engine import get_salary_dashboard
@@ -83,7 +83,7 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "❤️ <b>ShaunMariaOS</b>\n\nChoose an option below 👇",
         parse_mode="HTML",
-        reply_markup=get_main_menu_buttons(),
+        reply_markup=get_persistent_main_keyboard(),
     )
 
 

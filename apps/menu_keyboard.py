@@ -4,7 +4,24 @@ ShaunMariaOS
 Inline Menu Buttons
 """
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+)
+
+
+def get_persistent_main_keyboard():
+    return ReplyKeyboardMarkup(
+        [
+            ["📅 Today", "💍 Wedding"],
+            ["💰 Money", "❤️ Dashboard"],
+            ["⚙️ More"],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False,
+        input_field_placeholder="Choose an option...",
+    )
 
 
 def get_main_menu_buttons():
