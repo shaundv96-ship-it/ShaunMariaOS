@@ -9,7 +9,7 @@ from apps.database_engine import (
     get_budget_sheet,
     get_guestlist_sheet,
 )
-
+from apps.status_engine import finance_status
 
 def number(value):
     """
@@ -169,12 +169,7 @@ def get_finance_summary():
     commitments = savings + bills + insurance
     available = income - commitments
 
-    if available >= 1000:
-        health = "🟢 Healthy"
-    elif available >= 500:
-        health = "🟡 Comfortable"
-    else:
-        health = "🔴 Tight"
+   health = finance_status(available)
 
     return {
         "salary": income,
