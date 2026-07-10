@@ -4,90 +4,38 @@ ShaunMariaOS
 Bills Engine
 """
 
-from apps.database_engine import get_finance_sheet
-
-
-def money(value):
-    try:
-        amount = float(str(value).replace("$", "").replace(",", ""))
-        return f"${amount:,.2f}"
-    except:
-        return str(value)
+from apps.formatting_engine import money
+from utils.sheet_parser import get_bills_summary
 
 
 def get_bills_dashboard():
+    summary = get_bills_summary()
 
-    rows = get_finance_sheet()
+    message = f"""🧾 <b>Bills Dashboard</b>
 
-    bills = []
+💰 <b>Total Monthly Bills</b>
+{money(summary["total"])}
 
-    total = 0
+📅 <b>Active Bills</b>
+"""
 
-    for row in rows:
-
-        if len(row) < 9:
-            continue
-
-        category = str(row[1]).strip()
-        item = str(row[2]).strip()
-        amount = row[4]
-        due = str(row[5]).strip()
-        priority = str(row[7]).strip()
-        status = str(row[8]).strip()
-
-        if category != "Bills":
-            continue
-
-        if status.lower() != "active":
-            continue
-
-        try:
-            value = float(str(amount).replace("$", "").replace(",", ""))
-        except:
-            continue
-
-        total += value
-
-        bills.append({
-            "item": item,
-            "amount": value,
-            "due": due,
-            "priority": priority
-        })
-
-    priority_order = {
-        "HIGH": 0,
-        "MEDIUM": 1,
-        "LOW": 2
+    icons = {
+        "HIGH": "🔴",
+        "MEDIUM": "🟡",
+        "LOW": "🟢",
     }
 
-    bills.sort(
-        key=lambda x: priority_order.get(
-            x["priority"].upper(),
-            99
-        )
-    )
+    for bill in summary["bills"]:
+        message += f"""
 
-    message = "🧾 <b>Bills Dashboard</b>\n\n"
+{icons.get(bill["priority"], "⚪")} <b>{bill["item"]}</b>
+{money(bill["amount"])}
+{bill["due"]}
+"""
 
-    message += f"💰 <b>Total Monthly Bills</b>\n{money(total)}\n\n"
+    message += """
 
-    message += "📅 <b>Active Bills</b>\n"
-
-    for bill in bills:
-
-        emoji = {
-            "HIGH": "🔴",
-            "MEDIUM": "🟡",
-            "LOW": "🟢"
-        }.get(bill["priority"].upper(), "⚪")
-
-        message += (
-            f"\n{emoji} <b>{bill['item']}</b>\n"
-            f"{money(bill['amount'])}\n"
-            f"{bill['due']}\n"
-        )
-
-    message += "\n📊 <b>Source</b>\nLive from Google Sheets"
+📊 <b>Source</b>
+Live from Google Sheets"""
 
     return message

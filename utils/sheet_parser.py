@@ -180,3 +180,107 @@ def get_finance_summary():
         "available": available,
         "health": health,
     }
+
+    def get_bills_summary():
+    rows = get_finance_sheet()
+
+    bills = []
+    total = 0
+
+    priority_order = {
+        "HIGH": 0,
+        "MEDIUM": 1,
+        "LOW": 2,
+    }
+
+    for row in rows:
+        if len(row) < 9:
+            continue
+
+        category = str(row[1]).strip()
+        status = str(row[8]).strip().lower()
+
+        if category != "Bills" or status != "active":
+            continue
+
+        try:
+            amount = number(row[4])
+        except Exception:
+            continue
+
+        total += amount
+
+        bills.append({
+            "item": str(row[2]).strip(),
+            "amount": amount,
+            "due": str(row[5]).strip(),
+            "priority": str(row[7]).strip().upper(),
+        })
+
+    bills.sort(
+        key=lambda bill: priority_order.get(
+            bill["priority"],
+            99,
+        )
+    )
+
+    return {
+        "total": total,
+        "bills": bills,
+    }
+
+def get_insurance_summary():
+    rows = get_finance_sheet()
+
+    policies = []
+    active_total = 0
+
+    for row in rows:
+        if len(row) < 9:
+            continue
+
+        category = str(row[1]).strip()
+
+        if category != "Insurance":
+            continue
+
+        item = str(row[2]).strip()
+        owner = str(row[3]).strip()
+        amount = number(row[4])
+        due = str(row[5]).strip()
+        frequency = str(row[6]).strip()
+        status = str(row[8]).strip()
+
+        is_active = status.lower() == "active"
+
+        if is_active:
+            active_total += amount
+
+        policies.append(
+            {
+                "item": item,
+                "owner": owner,
+                "amount": amount,
+                "due": due,
+                "frequency": frequency,
+                "status": status,
+                "is_active": is_active,
+            }
+        )
+
+    policies.sort(
+        key=lambda policy: (
+            not policy["is_active"],
+            policy["owner"].lower(),
+            policy["item"].lower(),
+        )
+    )
+
+    return {
+        "policies": policies,
+        "active_total": active_total,
+        "active_count": sum(
+            policy["is_active"] for policy in policies
+        ),
+        "policy_count": len(policies),
+    }

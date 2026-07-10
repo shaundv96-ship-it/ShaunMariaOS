@@ -4,87 +4,65 @@ ShaunMariaOS
 Insurance Engine
 """
 
-from apps.database_engine import get_finance_sheet
-
-
-def money(value):
-    try:
-        amount = float(str(value).replace("$", "").replace(",", ""))
-        return f"${amount:,.2f}"
-    except:
-        return str(value)
+from apps.formatting_engine import money
+from utils.sheet_parser import get_insurance_summary
 
 
 def get_insurance_dashboard():
-
-    rows = get_finance_sheet()
-
-    policies = []
-    total = 0
-
-    for row in rows:
-
-        if len(row) < 9:
-            continue
-
-        category = str(row[1]).strip()
-        item = row[2]
-        owner = row[3]
-        amount = row[4]
-        due = row[5]
-        frequency = row[6]
-        status = row[8]
-
-        if category != "Insurance":
-            continue
-
-        try:
-            value = float(str(amount).replace("$", "").replace(",", ""))
-            total += value
-        except:
-            value = 0
-
-        policies.append({
-            "item": item,
-            "owner": owner,
-            "amount": amount,
-            "due": due,
-            "frequency": frequency,
-            "status": status
-        })
-
-    message = "🛡 <b>Insurance Dashboard</b>\n\n"
+    summary = get_insurance_summary()
+    policies = summary["policies"]
 
     if not policies:
-        return message + "No insurance policies found."
+        return """🛡 <b>Insurance Dashboard</b>
+
+No insurance policies found."""
+
+    lines = [
+        "🛡 <b>Insurance Dashboard</b>",
+        "",
+    ]
 
     for policy in policies:
+        icon = "🟢" if policy["is_active"] else "🔴"
 
-        icon = "🟢" if str(policy["status"]).lower() == "active" else "🔴"
+        lines.extend(
+            [
+                f"📄 <b>{policy['item']}</b>",
+                f"💰 {money(policy['amount'])}",
+                f"👤 {policy['owner'] or 'Not specified'}",
+                f"📅 {policy['due'] or 'No due date'}",
+                f"🔁 {policy['frequency'] or 'Not specified'}",
+                f"{icon} {policy['status'] or 'Unknown'}",
+                "",
+            ]
+        )
 
-        message += f"""📄 <b>{policy['item']}</b>
+    lines.extend(
+        [
+            "━━━━━━━━━━━━━━━━━━",
+            "",
+            "💵 <b>Active Insurance Commitments</b>",
+            money(summary["active_total"]),
+            "",
+            "📊 <b>Policies</b>",
+            (
+                f"{summary['active_count']} active "
+                f"out of {summary['policy_count']}"
+            ),
+            "",
+            "━━━━━━━━━━━━━━━━━━",
+            "",
+            "🧠 <b>Insight</b>",
+            (
+                f"Active insurance commitments total "
+                f"{money(summary['active_total'])} each month."
+            ),
+            "",
+            "Active policies are included in monthly cash-flow planning.",
+            "",
+            "📈 <b>Source</b>",
+            "Live from Google Sheets",
+        ]
+    )
 
-💰 {money(policy['amount'])}
-👤 {policy['owner']}
-📅 {policy['due']}
-🔁 {policy['frequency']}
-{icon} {policy['status']}
-
-"""
-
-    message += "━━━━━━━━━━━━━━━━━━\n\n"
-
-    message += f"""💵 <b>Total Insurance</b>
-
-{money(total)}
-
-━━━━━━━━━━━━━━━━━━
-
-🧠 <b>Insight</b>
-
-Your insurance commitments total {money(total)} per month.
-
-All active policies are included in your monthly cash flow planning.
-"""
-
-    return message
+    return "\n".join(lines)
