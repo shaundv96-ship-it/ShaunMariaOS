@@ -4,66 +4,20 @@ ShaunMariaOS
 Salary Engine
 """
 
-from apps.database_engine import get_finance_sheet
-
-
-def money(value):
-    try:
-        amount = float(str(value).replace("$", "").replace(",", ""))
-        return f"${amount:,.2f}"
-    except:
-        return str(value)
+from apps.formatting_engine import money, percent
+from utils.sheet_parser import get_finance_summary
 
 
 def get_salary_dashboard():
+    finance = get_finance_summary()
 
-    rows = get_finance_sheet()
-
-    income = 0
-    savings = 0
-    bills = 0
-    insurance = 0
-
-    for row in rows:
-
-        if len(row) < 9:
-            continue
-
-        category = str(row[1]).strip()
-        amount = row[4]
-        status = str(row[8]).strip()
-
-        if status.lower() != "active":
-            continue
-
-        try:
-            value = float(str(amount).replace("$", "").replace(",", ""))
-        except:
-            continue
-
-        if category == "Income":
-            income += value
-
-        elif category == "Savings":
-            savings += value
-
-        elif category == "Bills":
-            bills += value
-
-        elif category == "Insurance":
-            insurance += value
-
-    commitments = savings + bills + insurance
-    available = income - commitments
-
-    if available >= 1000:
-        health = "🟢 Excellent"
-
-    elif available >= 500:
-        health = "🟡 Comfortable"
-
-    else:
-        health = "🔴 Tight"
+    income = finance["salary"]
+    savings = finance["savings"]
+    bills = finance["bills"]
+    insurance = finance["insurance"]
+    commitments = finance["commitments"]
+    available = finance["available"]
+    health = finance["health"]
 
     savings_rate = (savings / income * 100) if income else 0
     commitment_rate = (commitments / income * 100) if income else 0
@@ -74,7 +28,6 @@ def get_salary_dashboard():
 ━━━━━━━━━━━━━━━━━━
 
 💰 <b>Monthly Salary</b>
-
 {money(income)}
 
 ━━━━━━━━━━━━━━━━━━
@@ -90,10 +43,12 @@ def get_salary_dashboard():
 🛡 Insurance
 {money(insurance)}
 
+📋 Total Commitments
+{money(commitments)}
+
 ━━━━━━━━━━━━━━━━━━
 
 💳 <b>Available Cash</b>
-
 {money(available)}
 
 {health}
@@ -103,13 +58,13 @@ def get_salary_dashboard():
 📈 <b>Allocation</b>
 
 Savings
-{savings_rate:.1f}%
+{percent(savings_rate)}
 
 Commitments
-{commitment_rate:.1f}%
+{percent(commitment_rate)}
 
 Available
-{available_rate:.1f}%
+{percent(available_rate)}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -117,5 +72,5 @@ Available
 
 Your recurring commitments total {money(commitments)} each month.
 
-You currently retain approximately {available_rate:.1f}% of your income after planned savings and recurring expenses.
+You currently retain approximately {percent(available_rate)} of your income after planned savings and recurring expenses.
 """
