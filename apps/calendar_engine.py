@@ -1,58 +1,74 @@
 """
 ShaunMariaOS
+
 Calendar Engine
 """
 
-import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
-from utils.time import sg_now
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-sys.path.append(str(BASE_DIR))
-
-from config import GOOGLE_CALENDAR_ID
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+from config import GOOGLE_CALENDAR_ID
+from utils.time import SINGAPORE_TZ, sg_now
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+CREDENTIALS_FILE = BASE_DIR / "credentials.json"
+TOKEN_FILE = BASE_DIR / "token.json"
 
 SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/spreadsheets.readonly",
     "https://www.googleapis.com/auth/drive.readonly",
 ]
-CREDENTIALS_FILE = BASE_DIR / "credentials.json"
-TOKEN_FILE = BASE_DIR / "token.json"
 
 
 def get_calendar_service():
-    creds = None
+    """Create and return an authenticated Google Calendar service."""
+    credentials = None
 
     if TOKEN_FILE.exists():
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        credentials = Credentials.from_authorized_user_file(
+            TOKEN_FILE,
+            SCOPES,
+        )
 
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+    if not credentials or not credentials.valid:
+        if (
+            credentials
+            and credentials.expired
+            and credentials.refresh_token
+        ):
+            credentials.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 CREDENTIALS_FILE,
                 SCOPES,
             )
-            creds = flow.run_local_server(port=0)
+            credentials = flow.run_local_server(port=0)
 
-        TOKEN_FILE.write_text(creds.to_json())
+        TOKEN_FILE.write_text(
+            credentials.to_json(),
+            encoding="utf-8",
+        )
 
-    return build("calendar", "v3", credentials=creds)
+    return build(
+        "calendar",
+        "v3",
+        credentials=credentials,
+        cache_discovery=False,
+    )
 
 
 def get_events_between(start_time, end_time):
+    """Return calendar events occurring within the supplied time range."""
     service = get_calendar_service()
 
-    events_result = (
+    result = (
         service.events()
         .list(
             calendarId=GOOGLE_CALENDAR_ID,
@@ -64,85 +80,130 @@ def get_events_between(start_time, end_time):
         .execute()
     )
 
-    return events_result.get("items", [])
+    return result.get("items", [])
 
 
 def get_today_events():
+    """Return events from now until the end of today in Singapore."""
     now = sg_now()
-    end_of_day = now.replace(hour=15, minute=59, second=59, microsecond=0)
+
+    end_of_day = now.replace(
+        hour=23,
+        minute=59,
+        second=59,
+        microsecond=999999,
+    )
+
     return get_events_between(now, end_of_day)
 
 
 def get_tomorrow_events():
-    now = sg_now()
-    tomorrow = now + timedelta(days=1)
+    """Return all events scheduled for tomorrow in Singapore."""
+    tomorrow = sg_now().date() + timedelta(days=1)
 
-    start_of_tomorrow = tomorrow.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_of_tomorrow = tomorrow.replace(hour=23, minute=59, second=59, microsecond=0)
+    start_of_tomorrow = datetime.combine(
+        tomorrow,
+        datetime.min.time(),
+        tzinfo=SINGAPORE_TZ,
+    )
 
-    return get_events_between(start_of_tomorrow, end_of_tomorrow)
+    end_of_tomorrow = datetime.combine(
+        tomorrow,
+        datetime.max.time(),
+        tzinfo=SINGAPORE_TZ,
+    )
+
+    return get_events_between(
+        start_of_tomorrow,
+        end_of_tomorrow,
+    )
+
+
+def get_event_display_time(event):
+    """Return a readable Singapore-time label for an event."""
+    start_data = event.get("start", {})
+    date_time_text = start_data.get("dateTime")
+    date_text = start_data.get("date")
+
+    if date_time_text:
+        event_time = datetime.fromisoformat(
+            date_time_text.replace("Z", "+00:00")
+        ).astimezone(SINGAPORE_TZ)
+
+        return event_time.strftime("%-I:%M %p")
+
+    if date_text:
+        return "All day"
+
+    return "Time unavailable"
 
 
 def format_events_for_telegram(title, events):
+    """Format a list of Google Calendar events for Telegram."""
     if not events:
-        return f"📅 <b>{title}</b>\n\nNo events scheduled."
+        return f"""📅 <b>{title}</b>
 
-    message = f"❤️ <b>ShaunMariaOS</b>\n\n📅 <b>{title}</b>\n\n"
+No events scheduled."""
+
+    lines = [
+        "❤️ <b>ShaunMariaOS</b>",
+        "",
+        f"📅 <b>{title}</b>",
+        "",
+    ]
 
     for event in events:
         event_title = event.get("summary", "Untitled Event")
-        start = event["start"].get("dateTime", event["start"].get("date"))
+        event_time = get_event_display_time(event)
 
-        if "T" in start:
-            time_part = start.split("T")[1][:5]
-            message += f"🕒 {time_part} - {event_title}\n"
-        else:
-            message += f"📌 All day - {event_title}\n"
+        icon = "📌" if event_time == "All day" else "🕒"
+        lines.append(f"{icon} {event_time} — {event_title}")
 
-    return message
+    return "\n".join(lines)
 
 
 def format_today_events_for_telegram():
-    return format_events_for_telegram("Today's Schedule", get_today_events())
+    """Return today's events formatted for Telegram."""
+    return format_events_for_telegram(
+        "Today's Schedule",
+        get_today_events(),
+    )
 
 
 def format_tomorrow_events_for_telegram():
-    return format_events_for_telegram("Tomorrow's Schedule", get_tomorrow_events())
+    """Return tomorrow's events formatted for Telegram."""
+    return format_events_for_telegram(
+        "Tomorrow's Schedule",
+        get_tomorrow_events(),
+    )
 
-
-if __name__ == "__main__":
-    events = get_today_events()
-    print(f"Found {len(events)} events today.")
-
-    for event in events:
-        print(event.get("summary", "Untitled Event"))
 
 def get_calendar_summary():
-
+    """Return a compact calendar summary for dashboards and advisors."""
     events = get_today_events()
 
     if not events:
         return {
             "event_count": 0,
-            "next_event": "No events today"
+            "next_event": "No events scheduled today.",
         }
 
-    first = events[0]
-
-    title = first.get("summary", "Untitled Event")
-
-    start = first["start"].get(
-        "dateTime",
-        first["start"].get("date")
-    )
-
-    if "T" in start:
-        time = start.split("T")[1][:5]
-        next_event = f"{title} ({time})"
-    else:
-        next_event = f"{title} (All Day)"
+    next_event = events[0]
+    event_title = next_event.get("summary", "Untitled Event")
+    event_time = get_event_display_time(next_event)
 
     return {
         "event_count": len(events),
-        "next_event": next_event
+        "next_event": f"{event_time} — {event_title}",
     }
+
+
+if __name__ == "__main__":
+    today_events = get_today_events()
+
+    print(f"Found {len(today_events)} events today.")
+
+    for calendar_event in today_events:
+        title = calendar_event.get("summary", "Untitled Event")
+        event_time = get_event_display_time(calendar_event)
+        print(f"{event_time} — {title}")
