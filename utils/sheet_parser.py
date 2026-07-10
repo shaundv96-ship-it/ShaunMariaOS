@@ -128,3 +128,60 @@ def get_guest_summary():
                 guest["cards_balance"] = next_value
 
     return guest
+
+from apps.database_engine import get_finance_sheet
+
+
+def get_finance_summary():
+    rows = get_finance_sheet()
+
+    income = 0
+    savings = 0
+    bills = 0
+    insurance = 0
+
+    for row in rows:
+        if len(row) < 9:
+            continue
+
+        category = str(row[1]).strip()
+        amount = row[4]
+        status = str(row[8]).strip().lower()
+
+        if status != "active":
+            continue
+
+        try:
+            value = float(str(amount).replace("$", "").replace(",", ""))
+        except (ValueError, TypeError):
+            continue
+
+        match category:
+            case "Income":
+                income += value
+            case "Savings":
+                savings += value
+            case "Bills":
+                bills += value
+            case "Insurance":
+                insurance += value
+
+    commitments = savings + bills + insurance
+    available = income - commitments
+
+    if available >= 1000:
+        health = "🟢 Healthy"
+    elif available >= 500:
+        health = "🟡 Comfortable"
+    else:
+        health = "🔴 Tight"
+
+    return {
+        "salary": income,
+        "savings": savings,
+        "bills": bills,
+        "insurance": insurance,
+        "commitments": commitments,
+        "available": available,
+        "health": health,
+    }

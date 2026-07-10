@@ -4,89 +4,41 @@ ShaunMariaOS
 Finance Engine
 """
 
-from apps.database_engine import get_finance_sheet
+from utils.sheet_parser import get_finance_summary
 
 
 def money(value):
     try:
-        amount = float(str(value).replace("$", "").replace(",", ""))
-        return f"${amount:,.2f}"
-    except:
-        return str(value)
-
-
-def get_finance_summary():
-    rows = get_finance_sheet()
-
-    income = 0
-    savings = 0
-    bills = 0
-    insurance = 0
-
-    for row in rows:
-        if len(row) < 9:
-            continue
-
-        category = str(row[1]).strip()
-        amount = row[4]
-        status = str(row[8]).strip()
-
-        if status.lower() != "active":
-            continue
-
-        try:
-            value = float(str(amount).replace("$", "").replace(",", ""))
-        except:
-            continue
-
-        if category == "Income":
-            income += value
-        elif category == "Savings":
-            savings += value
-        elif category == "Bills":
-            bills += value
-        elif category == "Insurance":
-            insurance += value
-
-    commitments = savings + bills + insurance
-    available = income - commitments
-
-    if available >= 1000:
-        health = "🟢 Healthy"
-    elif available >= 500:
-        health = "🟡 Comfortable"
-    else:
-        health = "🔴 Tight"
-
-    return {
-        "salary": income,
-        "savings": savings,
-        "bills": bills,
-        "insurance": insurance,
-        "commitments": commitments,
-        "available": available,
-        "health": health,
-    }
+        return f"${float(value):,.2f}"
+    except (ValueError, TypeError):
+        return "$0.00"
 
 
 def get_finance_dashboard():
-    summary = get_finance_summary()
+    finance = get_finance_summary()
 
     return f"""💰 <b>Finance Dashboard</b>
 
-💵 Income
-{money(summary["salary"])}
+💵 <b>Income</b>
+{money(finance["salary"])}
 
-🏦 Savings
-{money(summary["savings"])}
+🏦 <b>Savings</b>
+{money(finance["savings"])}
 
-🧾 Bills
-{money(summary["bills"])}
+🧾 <b>Bills</b>
+{money(finance["bills"])}
 
-🛡 Insurance
-{money(summary["insurance"])}
+🛡 <b>Insurance</b>
+{money(finance["insurance"])}
 
-💳 Remaining
-{money(summary["available"])}
+📋 <b>Total Commitments</b>
+{money(finance["commitments"])}
 
-{summary["health"]}"""
+💳 <b>Available Cash</b>
+{money(finance["available"])}
+
+📊 <b>Cash Flow</b>
+{finance["health"]}
+
+📈 <b>Source</b>
+Live from Google Sheets"""
