@@ -15,34 +15,14 @@ from apps.calendar_engine import get_calendar_summary
 from apps.finance_engine import get_finance_summary
 from apps.wedding_engine import get_wedding_summary
 from apps.insight_engine import build_insights
+from apps.greeting_engine import get_greeting
 from utils.time import sg_now
 from utils.ui import build_screen
 from utils.widgets import info_widget, metric_widget
-
+from apps.formatting_engine import money
 
 VERSION = f"v{APP_VERSION} {APP_STAGE}"
 
-
-def money(value):
-    """Format a numeric value as Singapore-dollar currency."""
-    try:
-        return f"${float(value):,.2f}"
-    except (ValueError, TypeError):
-        return "$0.00"
-
-
-def get_greeting():
-    """Return a greeting based on the current Singapore time."""
-    hour = sg_now().hour
-
-    if hour < 12:
-        return "☀️ Good Morning Shaun & Maria"
-    if hour < 18:
-        return "🌤 Good Afternoon Shaun & Maria"
-    if hour < 22:
-        return "🌆 Good Evening Shaun & Maria"
-
-    return "🌙 Good Night Shaun & Maria"
 
 
 def safe_finance_summary():

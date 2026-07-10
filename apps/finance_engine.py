@@ -5,14 +5,7 @@ Finance Engine
 """
 
 from utils.sheet_parser import get_finance_summary
-
-
-def money(value):
-    try:
-        return f"${float(value):,.2f}"
-    except (ValueError, TypeError):
-        return "$0.00"
-
+from apps.formatting_engine import money
 
 def get_finance_dashboard():
     finance = get_finance_summary()

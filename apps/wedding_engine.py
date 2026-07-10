@@ -9,16 +9,9 @@ from datetime import datetime
 from apps.database_engine import get_timeline_sheet
 from utils.sheet_parser import get_budget_summary, get_guest_summary
 from utils.time import sg_now
+from apps.formatting_engine import money
 
 WEDDING_DATE = datetime(2026, 10, 31)
-
-
-def money(value):
-    try:
-        amount = float(value)
-        return f"${amount:,.2f}"
-    except (ValueError, TypeError):
-        return "$0.00"
 
 
 def wedding_days_remaining():
