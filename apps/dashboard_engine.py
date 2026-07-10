@@ -14,7 +14,7 @@ from app_config import (
 from apps.calendar_engine import get_calendar_summary
 from apps.finance_engine import get_finance_summary
 from apps.wedding_engine import get_wedding_summary
-from engines.insight_engine import build_insights
+from apps.insight_engine import build_insights
 from utils.time import sg_now
 from utils.ui import build_screen
 from utils.widgets import info_widget, metric_widget
