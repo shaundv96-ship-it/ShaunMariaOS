@@ -169,7 +169,7 @@ def get_finance_summary():
     commitments = savings + bills + insurance
     available = income - commitments
 
-   health = finance_status(available)
+    health = finance_status(available)
 
     return {
         "salary": income,
