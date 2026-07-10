@@ -41,14 +41,32 @@ def get_wedding_menu_buttons():
 def get_money_menu_buttons():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("💵 Salary", callback_data="money_salary"),
-            InlineKeyboardButton("🧾 Bills", callback_data="money_bills"),
+            InlineKeyboardButton(
+                "💰 Overview",
+                callback_data="money_overview",
+            ),
         ],
         [
-            InlineKeyboardButton("🛡 Insurance", callback_data="money_insurance"),
+            InlineKeyboardButton(
+                "💵 Salary",
+                callback_data="money_salary",
+            ),
+            InlineKeyboardButton(
+                "🧾 Bills",
+                callback_data="money_bills",
+            ),
         ],
         [
-            InlineKeyboardButton("🏠 Main Menu", callback_data="menu_main"),
+            InlineKeyboardButton(
+                "🛡 Insurance",
+                callback_data="money_insurance",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "🏠 Main Menu",
+                callback_data="menu_main",
+            ),
         ],
     ])
 
