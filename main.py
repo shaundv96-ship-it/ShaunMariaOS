@@ -28,7 +28,13 @@ from apps.database_engine import get_database_status
 from apps.finance_engine import get_finance_dashboard
 from apps.health_engine import get_health
 from apps.insurance_engine import get_insurance_dashboard
-from apps.menu_keyboard import (get_main_menu_buttons,get_persistent_main_keyboard,)
+from apps.menu_keyboard import (
+    get_main_menu_buttons,
+    get_money_menu_buttons,
+    get_persistent_main_keyboard,
+    get_system_menu_buttons,
+    get_wedding_menu_buttons,
+)
 from apps.menu_navigation import handle_menu_button
 from apps.notification_engine import get_notification_message
 from apps.salary_engine import get_salary_dashboard
@@ -244,25 +250,46 @@ async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML",
     )
 
-async def text_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def text_button_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
     text = update.message.text
+    message = None
+    keyboard = None
 
     if text == "📅 Today":
         message = format_today_events_for_telegram()
+        keyboard = get_main_menu_buttons()
+
     elif text == "💍 Wedding":
         message = get_wedding_dashboard()
+        keyboard = get_wedding_menu_buttons()
+
     elif text == "💰 Money":
         message = get_finance_dashboard()
+        keyboard = get_money_menu_buttons()
+
     elif text == "❤️ Dashboard":
         message = get_dashboard_message()
+        keyboard = get_main_menu_buttons()
+
     elif text == "🏠 Home":
-        message = "🏠 <b>HomeOS</b>\n\nComing soon."
+        message = "🏠 <b>HomeOS</b>\n\nComing later."
+        keyboard = get_main_menu_buttons()
+
     elif text == "⚙️ More":
         message = get_health()
+        keyboard = get_system_menu_buttons()
+
     else:
         return
 
-    await update.message.reply_text(message, parse_mode="HTML")
+    await update.message.reply_text(
+        message,
+        parse_mode="HTML",
+        reply_markup=keyboard,
+    )
 
 
 def register_handlers(app):
