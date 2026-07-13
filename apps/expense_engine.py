@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from apps.formatting_engine import money
 from services.sheet_writer import append_row
 from utils.time import sg_now
-
+from utils.category_rules import CATEGORY_RULES
 
 EXPENSE_SHEET = "Expense Log"
 DEFAULT_OWNER = "Shaun"
@@ -113,3 +113,18 @@ def format_expense_confirmation(expense: ExpenseEntry) -> str:
 {expense.owner}
 
 📊 Google Sheets updated"""
+def detect_category(item: str) -> str:
+    """
+    Detect expense category based on keywords.
+    """
+
+    text = item.lower()
+
+    for category, keywords in CATEGORY_RULES.items():
+
+        for keyword in keywords:
+
+            if keyword in text:
+                return category
+
+    return "General"

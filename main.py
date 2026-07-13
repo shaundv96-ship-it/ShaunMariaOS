@@ -36,10 +36,12 @@ from apps.menu_keyboard import (
     get_system_menu_buttons,
     get_wedding_menu_buttons,
 )
+from utils.nlp_parser import detect_expense
+from apps.expense_engine import detect_category
 from apps.expense_engine import (
-    format_expense_confirmation,
-    parse_expense_command,
+    ExpenseEntry,
     save_expense,
+    format_expense_confirmation,
 )
 from apps.menu_navigation import handle_menu_button
 from apps.notification_engine import get_notification_message
@@ -438,6 +440,7 @@ async def text_button_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
+
     if not update.message:
         return
 
@@ -470,19 +473,50 @@ async def text_button_handler(
         ),
     }
 
+    # --------------------------------------------------
+    # Handle Bottom Menu Buttons
+    # --------------------------------------------------
+
     route = routes.get(text)
 
-    if not route:
+    if route:
+
+        message_source, keyboard_source = route
+
+        await update.message.reply_text(
+            message_source(),
+            parse_mode="HTML",
+            reply_markup=keyboard_source(),
+        )
+
         return
 
-    message_source, keyboard_source = route
+    # --------------------------------------------------
+    # Handle Natural Language Expense
+    # --------------------------------------------------
 
-    await update.message.reply_text(
-        message_source(),
-        parse_mode="HTML",
-        reply_markup=keyboard_source(),
-    )
+    expense = detect_expense(text)
 
+    if expense:
+
+        entry = ExpenseEntry(
+    amount=expense["amount"],
+    item=expense["item"],
+    category=detect_category(
+        expense["item"]
+    ),
+)
+        save_expense(entry)
+
+        await reply_with_main_keyboard(
+            update,
+            format_expense_confirmation(entry),
+        )
+
+        return
+
+    # Ignore anything else
+    return
 
 # ====================================================
 # Handler Registration
