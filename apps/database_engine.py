@@ -2,6 +2,7 @@
 ShaunMariaOS
 
 Database Engine
+Provides access to Google Sheets worksheets.
 """
 
 from apps.sheets_engine import get_spreadsheet, get_worksheet_values
@@ -9,35 +10,51 @@ from constants import (
     BUDGET_SHEET,
     CHECKLIST_SHEET,
     GUESTLIST_SHEET,
-    STD_SHEET,
-    WEDDING_PARTY_SHEET,
     HENNA_PARTY_SHEET,
-    SEATING_PLAN_SHEET,
-    PHOTOGRAPHY_SHEET,
-    TIMELINE_SHEET,
     HONEYMOON_SHEET,
+    PHOTOGRAPHY_SHEET,
+    SEATING_PLAN_SHEET,
+    STD_SHEET,
+    TIMELINE_SHEET,
+    WEDDING_PARTY_SHEET,
 )
 
 
+FINANCE_SHEET = "Finance"
+
+
 def get_database_status():
+    """Return the Google Sheets database connection status."""
     spreadsheet = get_spreadsheet()
     worksheets = spreadsheet.worksheets()
 
-    message = "❤️ <b>ShaunMariaOS Database</b>\n\n"
-    message += "🟢 <b>Status</b>\nConnected\n\n"
-    message += f"📄 <b>Database</b>\n{spreadsheet.title}\n\n"
-    message += "📚 <b>Available Tabs</b>\n"
+    lines = [
+        "❤️ <b>ShaunMariaOS Database</b>",
+        "",
+        "🟢 <b>Status</b>",
+        "Connected",
+        "",
+        "📄 <b>Database</b>",
+        spreadsheet.title,
+        "",
+        "📚 <b>Available Tabs</b>",
+    ]
 
-    for sheet in worksheets:
-        message += f"• {sheet.title}\n"
+    lines.extend(f"• {worksheet.title}" for worksheet in worksheets)
 
-    message += "\n✅ Live via Google Sheets"
-    return message
+    lines.extend(
+        [
+            "",
+            "✅ Live via Google Sheets",
+        ]
+    )
+
+    return "\n".join(lines)
 
 
-# ==========================
+# ====================================================
 # Wedding Sheets
-# ==========================
+# ====================================================
 
 def get_budget_sheet():
     return get_worksheet_values(BUDGET_SHEET)
@@ -79,9 +96,9 @@ def get_honeymoon_sheet():
     return get_worksheet_values(HONEYMOON_SHEET)
 
 
-# ==========================
+# ====================================================
 # Finance Sheets
-# ==========================
+# ====================================================
 
 def get_finance_sheet():
-    return get_worksheet_values("Finance")
+    return get_worksheet_values(FINANCE_SHEET)

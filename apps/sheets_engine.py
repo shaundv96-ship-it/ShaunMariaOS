@@ -14,37 +14,49 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from config import GOOGLE_SHEET_ID
+from config import (
+    GOOGLE_SHEET_ID,
+    SCOPES,
+)
 
-SCOPES = [
-    "https://www.googleapis.com/auth/calendar.readonly",
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/drive.readonly",
-]
 
 CREDENTIALS_FILE = BASE_DIR / "credentials.json"
 TOKEN_FILE = BASE_DIR / "token.json"
 
 
-def get_sheets_client():
+def get_credentials():
+    """
+    Return authenticated Google credentials.
+    """
+
     creds = None
 
     if TOKEN_FILE.exists():
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        creds = Credentials.from_authorized_user_file(
+            TOKEN_FILE,
+            SCOPES,
+        )
 
     if not creds or not creds.valid:
+
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
+
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 CREDENTIALS_FILE,
                 SCOPES,
             )
+
             creds = flow.run_local_server(port=0)
 
         TOKEN_FILE.write_text(creds.to_json())
 
-    return gspread.authorize(creds)
+    return creds
+
+
+def get_sheets_client():
+    return gspread.authorize(get_credentials())
 
 
 def get_spreadsheet():
