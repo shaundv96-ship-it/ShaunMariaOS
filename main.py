@@ -16,6 +16,7 @@ from telegram.ext import (
     filters,
 )
 
+from app_config import APP_NAME
 from apps.about_engine import get_about
 from apps.bills_engine import get_bills_dashboard
 from apps.briefing_engine import get_daily_briefing
@@ -26,6 +27,14 @@ from apps.calendar_engine import (
 from apps.changelog_engine import get_changelog_dashboard
 from apps.dashboard_engine import get_dashboard_message
 from apps.database_engine import get_database_status
+from apps.expense_engine import (
+    ExpenseEntry,
+    detect_category,
+    format_expense_confirmation,
+    parse_expense_command,
+    save_expense,
+)
+from apps.expense_summary_engine import get_expense_dashboard
 from apps.finance_engine import get_finance_dashboard
 from apps.health_engine import get_health
 from apps.insurance_engine import get_insurance_dashboard
@@ -35,13 +44,6 @@ from apps.menu_keyboard import (
     get_persistent_main_keyboard,
     get_system_menu_buttons,
     get_wedding_menu_buttons,
-)
-from utils.nlp_parser import detect_expense
-from apps.expense_engine import detect_category
-from apps.expense_engine import (
-    ExpenseEntry,
-    save_expense,
-    format_expense_confirmation,
 )
 from apps.menu_navigation import handle_menu_button
 from apps.notification_engine import get_notification_message
@@ -57,6 +59,7 @@ from config import BOT_TOKEN, write_google_auth_files
 from services.scheduler import start_scheduler
 from utils.error_handler import error_handler
 from utils.logger import logger
+from utils.nlp_parser import detect_expense
 from utils.startup import startup_banner
 from utils.time import sg_now
 
@@ -97,6 +100,59 @@ async def reply_with_inline_keyboard(
 
 
 # ====================================================
+# Expense Helpers
+# ====================================================
+
+async def save_and_confirm_expense(
+    update: Update,
+    expense: ExpenseEntry,
+) -> None:
+    """Save an expense and send its Telegram confirmation."""
+    save_expense(expense)
+
+    await reply_with_main_keyboard(
+        update,
+        format_expense_confirmation(expense),
+    )
+
+
+async def handle_natural_language_expense(
+    update: Update,
+    text: str,
+) -> bool:
+    """
+    Detect and save a natural-language expense.
+
+    Returns True when the message was recognised as an expense.
+    """
+    detected = detect_expense(text)
+
+    if not detected:
+        return False
+
+    expense = ExpenseEntry(
+        amount=detected["amount"],
+        item=detected["item"],
+        category=detect_category(detected["item"]),
+    )
+
+    try:
+        await save_and_confirm_expense(update, expense)
+
+    except Exception:
+        logger.exception("Failed to save natural-language expense.")
+
+        await reply_with_main_keyboard(
+            update,
+            """⚠️ <b>Expense Not Added</b>
+
+Something went wrong while updating Google Sheets.""",
+        )
+
+    return True
+
+
+# ====================================================
 # Main Commands
 # ====================================================
 
@@ -104,14 +160,13 @@ async def help_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
-    message = """❤️ <b>ShaunMariaOS</b>
+    message = f"""❤️ <b>{APP_NAME}</b>
 
 <b>Main</b>
 /menu - Easy menu
 /dashboard - Main dashboard
 /briefing - Daily briefing
 /notifications - Active notifications
-
 
 <b>Wedding</b>
 /wedding - Wedding dashboard
@@ -125,6 +180,7 @@ async def help_command(
 /bills - Monthly bills
 /insurance - Insurance dashboard
 /expense - Add an expense
+/expenses - Monthly expense summary
 
 <b>Calendar</b>
 /today - Today's schedule
@@ -147,7 +203,7 @@ async def menu_command(
 ) -> None:
     await reply_with_main_keyboard(
         update,
-        "❤️ <b>ShaunMariaOS</b>\n\nChoose an option below 👇",
+        f"❤️ <b>{APP_NAME}</b>\n\nChoose an option below 👇",
     )
 
 
@@ -155,7 +211,7 @@ async def status_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
-    message = """✅ <b>System Status</b>
+    message = f"""✅ <b>System Status</b>
 
 🤖 Telegram Bot
 Online
@@ -169,7 +225,7 @@ Connected
 📊 Google Sheets
 Connected
 
-❤️ ShaunMariaOS
+❤️ {APP_NAME}
 Running"""
 
     await reply_with_main_keyboard(update, message)
@@ -252,32 +308,7 @@ async def database_command(
         update,
         get_database_status(),
     )
-async def expense_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    try:
-        expense = parse_expense_command(context.args)
-        save_expense(expense)
 
-        message = format_expense_confirmation(expense)
-
-    except ValueError as error:
-        message = f"""⚠️ <b>Expense Not Added</b>
-
-{error}"""
-
-    except Exception:
-        logger.exception("Failed to add expense.")
-
-        message = """⚠️ <b>Expense Not Added</b>
-
-Something went wrong while updating Google Sheets."""
-
-    await reply_with_main_keyboard(
-        update,
-        message,
-    )
 
 # ====================================================
 # Wedding Commands
@@ -375,6 +406,55 @@ async def insurance_command(
     )
 
 
+async def expense_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    """Add an expense through the structured /expense command."""
+    try:
+        expense = parse_expense_command(context.args)
+        await save_and_confirm_expense(update, expense)
+
+    except ValueError as error:
+        await reply_with_main_keyboard(
+            update,
+            f"""⚠️ <b>Expense Not Added</b>
+
+{error}""",
+        )
+
+    except Exception:
+        logger.exception("Failed to add expense.")
+
+        await reply_with_main_keyboard(
+            update,
+            """⚠️ <b>Expense Not Added</b>
+
+Something went wrong while updating Google Sheets.""",
+        )
+
+
+async def expenses_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    """Show the monthly Expense Log summary."""
+    try:
+        message = get_expense_dashboard()
+
+    except Exception:
+        logger.exception("Failed to load expense summary.")
+
+        message = """⚠️ <b>Expense Summary Unavailable</b>
+
+Something went wrong while reading the Expense Log."""
+
+    await reply_with_main_keyboard(
+        update,
+        message,
+    )
+
+
 # ====================================================
 # System Commands
 # ====================================================
@@ -433,18 +513,17 @@ async def chatid_command(
 
 
 # ====================================================
-# Persistent Bottom Keyboard Handler
+# Persistent Bottom Keyboard and Natural Language
 # ====================================================
 
 async def text_button_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
-
-    if not update.message:
+    if not update.message or not update.message.text:
         return
 
-    text = update.message.text
+    text = update.message.text.strip()
 
     routes = {
         "📅 Today": (
@@ -473,14 +552,9 @@ async def text_button_handler(
         ),
     }
 
-    # --------------------------------------------------
-    # Handle Bottom Menu Buttons
-    # --------------------------------------------------
-
     route = routes.get(text)
 
     if route:
-
         message_source, keyboard_source = route
 
         await update.message.reply_text(
@@ -488,35 +562,13 @@ async def text_button_handler(
             parse_mode="HTML",
             reply_markup=keyboard_source(),
         )
-
         return
 
-    # --------------------------------------------------
-    # Handle Natural Language Expense
-    # --------------------------------------------------
+    await handle_natural_language_expense(
+        update,
+        text,
+    )
 
-    expense = detect_expense(text)
-
-    if expense:
-
-        entry = ExpenseEntry(
-    amount=expense["amount"],
-    item=expense["item"],
-    category=detect_category(
-        expense["item"]
-    ),
-)
-        save_expense(entry)
-
-        await reply_with_main_keyboard(
-            update,
-            format_expense_confirmation(entry),
-        )
-
-        return
-
-    # Ignore anything else
-    return
 
 # ====================================================
 # Handler Registration
@@ -532,6 +584,8 @@ def register_handlers(app) -> None:
         "today": today_command,
         "tomorrow": tomorrow_command,
         "dashboard": dashboard_command,
+        "briefing": briefing_command,
+        "notifications": notifications_command,
         "wedding": wedding_command,
         "weddingbudget": wedding_budget_command,
         "guestlist": guestlist_command,
@@ -540,18 +594,22 @@ def register_handlers(app) -> None:
         "salary": salary_command,
         "bills": bills_command,
         "insurance": insurance_command,
-        "briefing": briefing_command,
-        "notifications": notifications_command,
+        "expense": expense_command,
+        "expenses": expenses_command,
+        "health": health_command,
+        "version": version_command,
         "about": about_command,
         "changelog": changelog_command,
         "chatid": chatid_command,
-        "version": version_command,
-        "health": health_command,
-        "expense": expense_command,
     }
 
     for command, callback in command_handlers.items():
-        app.add_handler(CommandHandler(command, callback))
+        app.add_handler(
+            CommandHandler(
+                command,
+                callback,
+            )
+        )
 
     app.add_handler(
         MessageHandler(
@@ -561,7 +619,9 @@ def register_handlers(app) -> None:
     )
 
     app.add_handler(
-        CallbackQueryHandler(handle_menu_button)
+        CallbackQueryHandler(
+            handle_menu_button,
+        )
     )
 
     app.add_error_handler(error_handler)

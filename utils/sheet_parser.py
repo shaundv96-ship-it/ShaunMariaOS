@@ -9,6 +9,7 @@ from apps.database_engine import (
     get_budget_sheet,
     get_finance_sheet,
     get_guestlist_sheet,
+    get_expense_log_sheet,
 )
 from apps.status_engine import finance_status
 
@@ -291,3 +292,54 @@ def get_insurance_summary():
         ),
         "policy_count": len(policies),
     }
+# ====================================================
+# Expense Log
+# ====================================================
+
+from datetime import datetime
+
+
+def get_expense_summary():
+
+    rows = get_expense_log_sheet()
+
+    summary = {
+        "total": 0.0,
+        "count": 0,
+        "categories": {},
+    }
+
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+
+    for row in rows:
+
+        if len(row) < 9:
+            continue
+
+        try:
+            date = datetime.strptime(
+                row[0],
+                "%d-%b-%Y",
+            )
+        except Exception:
+            continue
+
+        if (
+            date.month != current_month
+            or date.year != current_year
+        ):
+            continue
+
+        category = str(row[3]).strip()
+        amount = number(row[5])
+
+        summary["total"] += amount
+        summary["count"] += 1
+
+        summary["categories"][category] = (
+            summary["categories"].get(category, 0)
+            + amount
+        )
+
+    return summary

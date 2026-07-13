@@ -119,3 +119,9 @@ def get_dashboard_message():
         sections,
         VERSION,
     )
+    
+EXPENSE_LOG_SHEET = "Expense Log"
+
+
+def get_expense_log_sheet():
+    return get_worksheet_values(EXPENSE_LOG_SHEET)
