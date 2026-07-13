@@ -40,6 +40,7 @@ CATEGORY_RULES = {
         "ntuc",
         "fairprice",
         "sheng siong",
+        "sheng shiong",
         "cold storage",
         "giant",
     ],

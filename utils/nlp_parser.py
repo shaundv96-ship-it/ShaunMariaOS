@@ -9,49 +9,54 @@ import re
 
 def detect_expense(message: str):
     """
-    Returns an expense dict if recognised.
-    Otherwise returns None.
+    Detect natural language expense entries.
     """
 
     text = message.lower().strip()
 
     patterns = [
 
+        # Spent $18.50 on lunch
         r"spent \$?(\d+(?:\.\d+)?) on (.+)",
 
+        # Bought coffee $5
         r"bought (.+) \$?(\d+(?:\.\d+)?)",
 
-        r"(.+) \$?(\d+(?:\.\d+)?)",
+        # $6 lunch
+        r"\$?(\d+(?:\.\d+)?) (.+)",
 
+        # lunch $6
+        r"(.+) \$?(\d+(?:\.\d+)?)",
     ]
 
-    for pattern in patterns:
+    for index, pattern in enumerate(patterns):
 
-        match = re.match(pattern, text)
+        match = re.fullmatch(pattern, text)
 
         if not match:
             continue
 
-        groups = match.groups()
+        first, second = match.groups()
 
-        if pattern.startswith("spent"):
+        if index == 0:
+            amount = float(first)
+            item = second
 
-            amount = float(groups[0])
-            item = groups[1]
+        elif index == 1:
+            item = first
+            amount = float(second)
 
-        elif pattern.startswith("bought"):
-
-            item = groups[0]
-            amount = float(groups[1])
+        elif index == 2:
+            amount = float(first)
+            item = second
 
         else:
-
-            item = groups[0]
-            amount = float(groups[1])
+            item = first
+            amount = float(second)
 
         return {
             "amount": amount,
-            "item": item.title(),
+            "item": item.strip().title(),
         }
 
     return None
