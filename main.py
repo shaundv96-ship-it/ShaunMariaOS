@@ -16,7 +16,6 @@ from telegram.ext import (
     filters,
 )
 
-from apps.user_engine import get_user_profile
 from app_config import APP_NAME
 from apps.about_engine import get_about
 from apps.bills_engine import get_bills_dashboard
@@ -30,7 +29,6 @@ from apps.dashboard_engine import get_dashboard_message
 from apps.database_engine import get_database_status
 from apps.expense_engine import (
     ExpenseEntry,
-    detect_category,
     format_expense_confirmation,
     parse_expense_command,
     save_expense,
@@ -39,6 +37,7 @@ from apps.expense_summary_engine import get_expense_dashboard
 from apps.finance_engine import get_finance_dashboard
 from apps.health_engine import get_health
 from apps.insurance_engine import get_insurance_dashboard
+from apps.intent_engine import detect_intent
 from apps.menu_keyboard import (
     get_main_menu_buttons,
     get_money_menu_buttons,
@@ -57,26 +56,16 @@ from apps.wedding_engine import (
     get_wedding_timeline,
 )
 from config import BOT_TOKEN, write_google_auth_files
+from handlers.expense_handler import handle_expense
+from handlers.income_handler import handle_income
 from services.scheduler import start_scheduler
 from utils.error_handler import error_handler
 from utils.logger import logger
-from utils.nlp_parser import detect_expense
 from utils.startup import startup_banner
 from utils.time import sg_now
-from apps.intent_engine import detect_intent
-from apps.income_engine import (
-    parse_income,
-    save_income,
-)
 
-# ====================================================
-# Shared Telegram Reply Helpers
-# ====================================================
 
-async def reply_with_main_keyboard(
-    update: Update,
-    message: str,
-) -> None:
+async def reply_with_main_keyboard(update: Update, message: str) -> None:
     """Reply while restoring the persistent bottom keyboard."""
     if not update.message:
         return
@@ -104,67 +93,19 @@ async def reply_with_inline_keyboard(
     )
 
 
-# ====================================================
-# Expense Helpers
-# ====================================================
-
 async def save_and_confirm_expense(
     update: Update,
     expense: ExpenseEntry,
 ) -> None:
-    """Save an expense and send its Telegram confirmation."""
+    """Save a structured /expense entry and send confirmation."""
     save_expense(expense)
-
     await reply_with_main_keyboard(
         update,
         format_expense_confirmation(expense),
     )
 
 
-async def handle_natural_language_expense(
-    update: Update,
-    text: str,
-) -> bool:
-    """
-    Detect and save a natural-language expense.
-
-    Returns True when the message was recognised as an expense.
-    """
-    detected = detect_expense(text)
-
-    if not detected:
-        return False
-
-    expense = ExpenseEntry(
-        amount=detected["amount"],
-        item=detected["item"],
-        category=detect_category(detected["item"]),
-    )
-
-    try:
-        await save_and_confirm_expense(update, expense)
-
-    except Exception:
-        logger.exception("Failed to save natural-language expense.")
-
-        await reply_with_main_keyboard(
-            update,
-            """⚠️ <b>Expense Not Added</b>
-
-Something went wrong while updating Google Sheets.""",
-        )
-
-    return True
-
-
-# ====================================================
-# Main Commands
-# ====================================================
-
-async def help_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = f"""❤️ <b>{APP_NAME}</b>
 
 <b>Main</b>
@@ -198,24 +139,17 @@ async def help_command(
 /version - Version
 /about - About ShaunMariaOS
 /changelog - Release history"""
-
     await reply_with_main_keyboard(update, message)
 
 
-async def menu_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_main_keyboard(
         update,
         f"❤️ <b>{APP_NAME}</b>\n\nChoose an option below 👇",
     )
 
 
-async def status_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = f"""✅ <b>System Status</b>
 
 🤖 Telegram Bot
@@ -232,18 +166,13 @@ Connected
 
 ❤️ {APP_NAME}
 Running"""
-
     await reply_with_main_keyboard(update, message)
 
 
-async def countdown_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def countdown_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     today = sg_now().date()
     wedding_date = datetime(2026, 10, 31).date()
     wedding_days = (wedding_date - today).days
-
     message = f"""❤️ <b>Shaun & Maria Countdown</b>
 
 💒 <b>Wedding</b>
@@ -251,78 +180,34 @@ async def countdown_command(
 
 🏠 <b>BTO</b>
 Estimated TOP: Q3 2030"""
-
     await reply_with_main_keyboard(update, message)
 
 
-async def today_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    await reply_with_main_keyboard(
-        update,
-        format_today_events_for_telegram(),
-    )
+async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await reply_with_main_keyboard(update, format_today_events_for_telegram())
 
 
-async def tomorrow_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    await reply_with_main_keyboard(
-        update,
-        format_tomorrow_events_for_telegram(),
-    )
+async def tomorrow_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await reply_with_main_keyboard(update, format_tomorrow_events_for_telegram())
 
 
-async def dashboard_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    await reply_with_main_keyboard(
-        update,
-        get_dashboard_message(),
-    )
+async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await reply_with_main_keyboard(update, get_dashboard_message())
 
 
-async def briefing_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    await reply_with_main_keyboard(
-        update,
-        get_daily_briefing(),
-    )
+async def briefing_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await reply_with_main_keyboard(update, get_daily_briefing())
 
 
-async def notifications_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    await reply_with_main_keyboard(
-        update,
-        get_notification_message(),
-    )
+async def notifications_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await reply_with_main_keyboard(update, get_notification_message())
 
 
-async def database_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    await reply_with_main_keyboard(
-        update,
-        get_database_status(),
-    )
+async def database_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await reply_with_main_keyboard(update, get_database_status())
 
 
-# ====================================================
-# Wedding Commands
-# ====================================================
-
-async def wedding_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def wedding_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_wedding_dashboard(),
@@ -330,10 +215,7 @@ async def wedding_command(
     )
 
 
-async def wedding_budget_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def wedding_budget_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_wedding_budget(),
@@ -341,10 +223,7 @@ async def wedding_budget_command(
     )
 
 
-async def guestlist_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def guestlist_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_guestlist_summary(),
@@ -352,10 +231,7 @@ async def guestlist_command(
     )
 
 
-async def timeline_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def timeline_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_wedding_timeline(),
@@ -363,14 +239,7 @@ async def timeline_command(
     )
 
 
-# ====================================================
-# Finance Commands
-# ====================================================
-
-async def finance_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def finance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_finance_dashboard(),
@@ -378,10 +247,7 @@ async def finance_command(
     )
 
 
-async def salary_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def salary_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_salary_dashboard(),
@@ -389,10 +255,7 @@ async def salary_command(
     )
 
 
-async def bills_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def bills_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_bills_dashboard(),
@@ -400,10 +263,7 @@ async def bills_command(
     )
 
 
-async def insurance_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def insurance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_insurance_dashboard(),
@@ -411,15 +271,11 @@ async def insurance_command(
     )
 
 
-async def expense_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add an expense through the structured /expense command."""
     try:
         expense = parse_expense_command(context.args)
         await save_and_confirm_expense(update, expense)
-
     except ValueError as error:
         await reply_with_main_keyboard(
             update,
@@ -427,10 +283,8 @@ async def expense_command(
 
 {error}""",
         )
-
     except Exception:
         logger.exception("Failed to add expense.")
-
         await reply_with_main_keyboard(
             update,
             """⚠️ <b>Expense Not Added</b>
@@ -439,35 +293,19 @@ Something went wrong while updating Google Sheets.""",
         )
 
 
-async def expenses_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def expenses_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show the monthly Expense Log summary."""
     try:
         message = get_expense_dashboard()
-
     except Exception:
         logger.exception("Failed to load expense summary.")
-
         message = """⚠️ <b>Expense Summary Unavailable</b>
 
 Something went wrong while reading the Expense Log."""
-
-    await reply_with_main_keyboard(
-        update,
-        message,
-    )
+    await reply_with_main_keyboard(update, message)
 
 
-# ====================================================
-# System Commands
-# ====================================================
-
-async def health_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_health(),
@@ -475,10 +313,7 @@ async def health_command(
     )
 
 
-async def version_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def version_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_version(),
@@ -486,10 +321,7 @@ async def version_command(
     )
 
 
-async def about_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
         update,
         get_about(),
@@ -497,34 +329,25 @@ async def about_command(
     )
 
 
-async def changelog_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    await reply_with_main_keyboard(
-        update,
-        get_changelog_dashboard(),
-    )
+async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await reply_with_main_keyboard(update, get_changelog_dashboard())
 
 
-async def chatid_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.effective_chat:
+        return
     await reply_with_main_keyboard(
         update,
         f"Your Chat ID is:\n\n{update.effective_chat.id}",
     )
 
 
-# ====================================================
-# Persistent Bottom Keyboard and Natural Language
-# ====================================================
-
 async def text_button_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
+    """Handle menu buttons and natural-language messages."""
+
     if not update.message or not update.message.text:
         return
 
@@ -569,52 +392,23 @@ async def text_button_handler(
         )
         return
 
-    # This must be outside the route block.
+    # This must remain outside the route block.
     intent = detect_intent(text)
-    if intent.name == "income":
 
-        income = parse_income(text)
-
-        if income is None:
-            await update.message.reply_text(
-                "❌ Unable to understand the income amount.",
-            )
-            return
-
-        profile = get_user_profile(
-            update.effective_user.id,
+    if intent.name == "expense":
+        await handle_expense(
+            update,
+            text,
         )
-
-        if profile["owner"] == "Unknown":
-            await update.message.reply_text(
-                "❌ This Telegram user is not registered.",
-            )
-            return
-
-        income.owner = profile["owner"]
-        income.item = profile["salary_item"]
-
-        try:
-            save_income(income)
-
-            await update.message.reply_text(
-                (
-                    "💰 <b>Income Updated</b>\n\n"
-                    f"👤 <b>Owner</b>\n{income.owner}\n\n"
-                    f"💵 <b>Item</b>\n{income.item}\n\n"
-                    f"💲 <b>Amount</b>\n"
-                    f"${income.amount:,.2f}\n\n"
-                    "📊 Finance sheet updated."
-                ),
-                parse_mode="HTML",
-            )
-
-        except Exception as error:
-            await update.message.reply_text(
-                f"❌ {error}"
-            )
-
         return
+
+    if intent.name == "income":
+        await handle_income(
+            update,
+            text,
+        )
+        return
+
     if intent.name == "wedding":
         await update.message.reply_text(
             "💍 <b>Wedding-related message detected</b>\n\n"
@@ -622,6 +416,7 @@ async def text_button_handler(
             "expenses using wording such as:\n\n"
             "<code>Florist $500</code>",
             parse_mode="HTML",
+            reply_markup=get_persistent_main_keyboard(),
         )
         return
 
@@ -630,17 +425,17 @@ async def text_button_handler(
             "✅ <b>Task detected</b>\n\n"
             "Task logging will be connected later.",
             parse_mode="HTML",
+            reply_markup=get_persistent_main_keyboard(),
         )
         return
 
     await update.message.reply_text(
         "I’m not sure what you’d like me to do with that yet.",
+        reply_markup=get_persistent_main_keyboard(),
     )
-# ====================================================
-# Handler Registration
-# ====================================================
 
 def register_handlers(app) -> None:
+    """Register Telegram command, text, callback, and error handlers."""
     command_handlers = {
         "help": help_command,
         "menu": menu_command,
@@ -670,12 +465,7 @@ def register_handlers(app) -> None:
     }
 
     for command, callback in command_handlers.items():
-        app.add_handler(
-            CommandHandler(
-                command,
-                callback,
-            )
-        )
+        app.add_handler(CommandHandler(command, callback))
 
     app.add_handler(
         MessageHandler(
@@ -683,21 +473,12 @@ def register_handlers(app) -> None:
             text_button_handler,
         )
     )
-
-    app.add_handler(
-        CallbackQueryHandler(
-            handle_menu_button,
-        )
-    )
-
+    app.add_handler(CallbackQueryHandler(handle_menu_button))
     app.add_error_handler(error_handler)
 
 
-# ====================================================
-# Application Startup
-# ====================================================
-
 def main() -> None:
+    """Start ShaunMariaOS."""
     logger.info("Starting ShaunMariaOS...")
 
     write_google_auth_files()
