@@ -1,15 +1,13 @@
-"""
-ShaunMariaOS
-
-Category Icons
-"""
-
 CATEGORY_ICONS = {
     "Food": "🍔",
-    "Transport": "🚕",
     "Groceries": "🛒",
+    "Transport": "🚕",
     "Shopping": "🛍️",
-    "Insurance": "🛡️",
+    "Personal Care": "💇",
+    "Medical": "🏥",
     "Entertainment": "🎬",
+    "Wedding": "💍",
+    "Household": "🏠",
+    "Insurance": "🛡️",
     "General": "📦",
 }

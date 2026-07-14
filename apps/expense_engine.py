@@ -10,6 +10,7 @@ from apps.formatting_engine import money
 from services.sheet_writer import append_row
 from utils.time import sg_now
 from utils.category_rules import CATEGORY_RULES
+from utils.category_keywords import CATEGORY_KEYWORDS
 
 EXPENSE_SHEET = "Expense Log"
 DEFAULT_OWNER = "Shaun"
@@ -115,16 +116,16 @@ def format_expense_confirmation(expense: ExpenseEntry) -> str:
 📊 Google Sheets updated"""
 def detect_category(item: str) -> str:
     """
-    Detect expense category based on keywords.
+    Detect the expense category from the item description.
     """
 
-    text = item.lower()
+    item = item.lower()
 
-    for category, keywords in CATEGORY_RULES.items():
+    for category, keywords in CATEGORY_KEYWORDS.items():
 
         for keyword in keywords:
 
-            if keyword in text:
+            if keyword in item:
                 return category
 
     return "General"
