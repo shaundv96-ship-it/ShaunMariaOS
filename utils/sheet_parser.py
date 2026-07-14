@@ -300,6 +300,7 @@ from datetime import datetime
 
 
 def get_expense_summary():
+    """Return a summary of this month's expenses."""
 
     rows = get_expense_log_sheet()
 
@@ -308,6 +309,14 @@ def get_expense_summary():
         "count": 0,
         "categories": {},
     }
+
+    largest_expense = {
+        "item": "",
+        "amount": 0.0,
+    }
+
+    highest_category = ""
+    highest_category_total = 0.0
 
     current_month = datetime.now().month
     current_year = datetime.now().year
@@ -332,7 +341,14 @@ def get_expense_summary():
             continue
 
         category = str(row[3]).strip()
+        item = str(row[4]).strip()
         amount = number(row[5])
+
+        if amount > largest_expense["amount"]:
+            largest_expense = {
+                "item": item,
+                "amount": amount,
+            }
 
         summary["total"] += amount
         summary["count"] += 1
@@ -341,5 +357,27 @@ def get_expense_summary():
             summary["categories"].get(category, 0)
             + amount
         )
+
+    if summary["categories"]:
+
+        highest_category = max(
+            summary["categories"],
+            key=summary["categories"].get,
+        )
+
+        highest_category_total = summary["categories"][
+            highest_category
+        ]
+
+    average = (
+        summary["total"] / summary["count"]
+        if summary["count"]
+        else 0
+    )
+
+    summary["average"] = average
+    summary["largest_expense"] = largest_expense
+    summary["highest_category"] = highest_category
+    summary["highest_category_total"] = highest_category_total
 
     return summary
