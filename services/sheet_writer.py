@@ -74,3 +74,60 @@ def append_row(
         raise RuntimeError(
             f"Google Sheets write failed: {error}"
         ) from error
+
+def update_cells(
+    sheet_name: str,
+    cell_updates: dict[str, Any],
+) -> dict:
+    """
+    Update specific cells in a Google Sheets worksheet.
+
+    Example:
+        {
+            "E3": 3600,
+            "J3": "14 July 2026",
+        }
+    """
+
+    if not sheet_name.strip():
+        raise ValueError("Sheet name cannot be empty.")
+
+    if not cell_updates:
+        raise ValueError("Cell updates cannot be empty.")
+
+    try:
+        service = get_sheet_service()
+
+        data = [
+            {
+                "range": f"'{sheet_name}'!{cell}",
+                "values": [[value]],
+            }
+            for cell, value in cell_updates.items()
+        ]
+
+        result = (
+            service.spreadsheets()
+            .values()
+            .batchUpdate(
+                spreadsheetId=GOOGLE_SHEET_ID,
+                body={
+                    "valueInputOption": "USER_ENTERED",
+                    "data": data,
+                },
+            )
+            .execute()
+        )
+
+        return {
+            "success": True,
+            "updated_cells": result.get(
+                "totalUpdatedCells",
+                0,
+            ),
+        }
+
+    except HttpError as error:
+        raise RuntimeError(
+            f"Google Sheets update failed: {error}"
+        ) from error

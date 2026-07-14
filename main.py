@@ -16,6 +16,7 @@ from telegram.ext import (
     filters,
 )
 
+from apps.user_engine import get_user_profile
 from app_config import APP_NAME
 from apps.about_engine import get_about
 from apps.bills_engine import get_bills_dashboard
@@ -63,6 +64,10 @@ from utils.nlp_parser import detect_expense
 from utils.startup import startup_banner
 from utils.time import sg_now
 from apps.intent_engine import detect_intent
+from apps.income_engine import (
+    parse_income,
+    save_income,
+)
 
 # ====================================================
 # Shared Telegram Reply Helpers
@@ -564,27 +569,58 @@ async def text_button_handler(
         )
         return
 
+    # This must be outside the route block.
     intent = detect_intent(text)
-
-    if intent.name == "expense":
-        await handle_natural_language_expense(
-            update,
-            text,
-        )
-        return
-
     if intent.name == "income":
-        await update.message.reply_text(
-            "💰 <b>Income detected</b>\n\n"
-            "Income logging will be connected next.",
-            parse_mode="HTML",
-        )
-        return
 
+        income = parse_income(text)
+
+        if income is None:
+            await update.message.reply_text(
+                "❌ Unable to understand the income amount.",
+            )
+            return
+
+        profile = get_user_profile(
+            update.effective_user.id,
+        )
+
+        if profile["owner"] == "Unknown":
+            await update.message.reply_text(
+                "❌ This Telegram user is not registered.",
+            )
+            return
+
+        income.owner = profile["owner"]
+        income.item = profile["salary_item"]
+
+        try:
+            save_income(income)
+
+            await update.message.reply_text(
+                (
+                    "💰 <b>Income Updated</b>\n\n"
+                    f"👤 <b>Owner</b>\n{income.owner}\n\n"
+                    f"💵 <b>Item</b>\n{income.item}\n\n"
+                    f"💲 <b>Amount</b>\n"
+                    f"${income.amount:,.2f}\n\n"
+                    "📊 Finance sheet updated."
+                ),
+                parse_mode="HTML",
+            )
+
+        except Exception as error:
+            await update.message.reply_text(
+                f"❌ {error}"
+            )
+
+        return
     if intent.name == "wedding":
         await update.message.reply_text(
             "💍 <b>Wedding-related message detected</b>\n\n"
-            "Wedding payment routing will be connected next.",
+            "For now, record wedding payments as ordinary "
+            "expenses using wording such as:\n\n"
+            "<code>Florist $500</code>",
             parse_mode="HTML",
         )
         return
