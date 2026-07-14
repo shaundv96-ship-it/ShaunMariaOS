@@ -62,7 +62,7 @@ from utils.logger import logger
 from utils.nlp_parser import detect_expense
 from utils.startup import startup_banner
 from utils.time import sg_now
-
+from apps.intent_engine import detect_intent
 
 # ====================================================
 # Shared Telegram Reply Helpers
@@ -564,12 +564,42 @@ async def text_button_handler(
         )
         return
 
-    await handle_natural_language_expense(
-        update,
-        text,
+    intent = detect_intent(text)
+
+    if intent.name == "expense":
+        await handle_natural_language_expense(
+            update,
+            text,
+        )
+        return
+
+    if intent.name == "income":
+        await update.message.reply_text(
+            "💰 <b>Income detected</b>\n\n"
+            "Income logging will be connected next.",
+            parse_mode="HTML",
+        )
+        return
+
+    if intent.name == "wedding":
+        await update.message.reply_text(
+            "💍 <b>Wedding-related message detected</b>\n\n"
+            "Wedding payment routing will be connected next.",
+            parse_mode="HTML",
+        )
+        return
+
+    if intent.name == "task":
+        await update.message.reply_text(
+            "✅ <b>Task detected</b>\n\n"
+            "Task logging will be connected later.",
+            parse_mode="HTML",
+        )
+        return
+
+    await update.message.reply_text(
+        "I’m not sure what you’d like me to do with that yet.",
     )
-
-
 # ====================================================
 # Handler Registration
 # ====================================================
