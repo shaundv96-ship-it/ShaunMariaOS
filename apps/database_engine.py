@@ -22,6 +22,7 @@ from constants import (
 
 FINANCE_SHEET = "Finance"
 EXPENSE_LOG_SHEET = "Expense Log"
+TASKS_SHEET = "Tasks"
 
 
 def get_database_status():
@@ -105,3 +106,6 @@ def get_finance_sheet():
     return get_worksheet_values(FINANCE_SHEET)
 def get_expense_log_sheet():
     return get_worksheet_values(EXPENSE_LOG_SHEET)
+
+def get_tasks_sheet():
+    return get_worksheet_values(TASKS_SHEET)
