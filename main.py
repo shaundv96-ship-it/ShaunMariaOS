@@ -69,6 +69,10 @@ from handlers.income_handler import handle_income
 from handlers.task_handler import handle_task
 from handlers.unknown_handler import handle_unknown
 from handlers.wedding_handler import handle_wedding
+from handlers.task_handler import (
+    get_tasks_message,
+    handle_task,
+)
 
 async def reply_with_main_keyboard(update: Update, message: str) -> None:
     """Reply while restoring the persistent bottom keyboard."""
@@ -136,6 +140,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 <b>Calendar</b>
 /today - Today's schedule
 /tomorrow - Tomorrow's schedule
+/task
 
 <b>System</b>
 /status - System status
@@ -251,6 +256,27 @@ async def finance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         get_money_menu_buttons(),
     )
 
+async def tasks_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    """Show all open tasks."""
+
+    try:
+        message = get_tasks_message()
+
+    except Exception:
+        logger.exception("Failed to load open tasks.")
+
+        message = (
+            "⚠️ <b>Tasks Unavailable</b>\n\n"
+            "Something went wrong while reading the Tasks sheet."
+        )
+
+    await reply_with_main_keyboard(
+        update,
+        message,
+    )
 
 async def salary_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
@@ -444,6 +470,7 @@ def register_handlers(app) -> None:
         "about": about_command,
         "changelog": changelog_command,
         "chatid": chatid_command,
+        "tasks": tasks_command,
     }
 
     for command, callback in command_handlers.items():

@@ -58,7 +58,6 @@ def detect_intent(text: str) -> Intent:
 
     if any(keyword in text for keyword in wedding_keywords):
         return Intent("wedding", 0.90)
-
     # -------------------------
     # Task
     # -------------------------
@@ -70,9 +69,36 @@ def detect_intent(text: str) -> Intent:
         "todo",
         "to do",
         "task",
+        "done ",
+        "complete ",
+        "completed ",
     ]
 
-    if any(phrase in text for phrase in task_phrases):
+    task_starters = (
+        "get ",
+        "buy ",
+        "call ",
+        "book ",
+        "collect ",
+        "renew ",
+        "pick up ",
+    )
+
+    contains_amount = bool(
+        re.search(
+            r"(?:\$\s*\d+(?:\.\d{1,2})?"
+            r"|\d+(?:\.\d{1,2})?\s*(?:dollars?|sgd))",
+            text,
+        )
+    )
+
+    if (
+        any(phrase in text for phrase in task_phrases)
+        or (
+            text.startswith(task_starters)
+            and not contains_amount
+        )
+    ):
         return Intent("task", 0.90)
 
     # -------------------------
