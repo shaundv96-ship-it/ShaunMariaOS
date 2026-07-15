@@ -64,6 +64,11 @@ from utils.logger import logger
 from utils.startup import startup_banner
 from utils.time import sg_now
 
+from handlers.expense_handler import handle_expense
+from handlers.income_handler import handle_income
+from handlers.task_handler import handle_task
+from handlers.unknown_handler import handle_unknown
+from handlers.wedding_handler import handle_wedding
 
 async def reply_with_main_keyboard(update: Update, message: str) -> None:
     """Reply while restoring the persistent bottom keyboard."""
