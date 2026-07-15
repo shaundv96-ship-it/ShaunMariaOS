@@ -397,48 +397,25 @@ async def text_button_handler(
         )
         return
 
-    # This must remain outside the route block.
+    # This line must be outside the route block.
     intent = detect_intent(text)
 
-    if intent.name == "expense":
-        await handle_expense(
-            update,
-            text,
-        )
-        return
+    intent_handlers = {
+        "expense": handle_expense,
+        "income": handle_income,
+        "wedding": handle_wedding,
+        "task": handle_task,
+    }
 
-    if intent.name == "income":
-        await handle_income(
-            update,
-            text,
-        )
-        return
-
-    if intent.name == "wedding":
-        await update.message.reply_text(
-            "💍 <b>Wedding-related message detected</b>\n\n"
-            "For now, record wedding payments as ordinary "
-            "expenses using wording such as:\n\n"
-            "<code>Florist $500</code>",
-            parse_mode="HTML",
-            reply_markup=get_persistent_main_keyboard(),
-        )
-        return
-
-    if intent.name == "task":
-        await update.message.reply_text(
-            "✅ <b>Task detected</b>\n\n"
-            "Task logging will be connected later.",
-            parse_mode="HTML",
-            reply_markup=get_persistent_main_keyboard(),
-        )
-        return
-
-    await update.message.reply_text(
-        "I’m not sure what you’d like me to do with that yet.",
-        reply_markup=get_persistent_main_keyboard(),
+    handler = intent_handlers.get(
+        intent.name,
+        handle_unknown,
     )
 
+    await handler(
+        update,
+        text,
+    )
 def register_handlers(app) -> None:
     """Register Telegram command, text, callback, and error handlers."""
     command_handlers = {
