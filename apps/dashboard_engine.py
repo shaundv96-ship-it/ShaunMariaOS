@@ -15,6 +15,7 @@ from apps.advisor_engine import get_advisor
 from apps.formatting_engine import money
 from apps.greeting_engine import get_greeting
 from apps.summary_engine import get_system_summary
+from apps.money_engine import get_money_summary
 from utils.time import sg_now
 from utils.ui import build_screen
 from utils.widgets import info_widget, metric_widget
@@ -55,6 +56,18 @@ def safe_system_summary():
             },
         }
 
+def safe_money_summary() -> dict:
+    """Return MoneyOS data without allowing the dashboard to fail."""
+    try:
+        return get_money_summary()
+    except Exception:
+        return {
+            "income": 0.0,
+            "expenses": 0.0,
+            "allocated": 0.0,
+            "monthly_cash_flow": 0.0,
+            "available_money": 0.0,
+        }
 
 def safe_advice():
     """Return advisor messages without allowing the dashboard to fail."""
@@ -72,6 +85,7 @@ def safe_advice():
 def get_dashboard_message():
     """Build the main ShaunMariaOS dashboard."""
     summary = safe_system_summary()
+    money_summary = safe_money_summary()
 
     finance = summary["finance"]
     wedding = summary["wedding"]
@@ -92,12 +106,13 @@ def get_dashboard_message():
             f"Balance: {money(wedding['balance'])}",
         ),
         metric_widget(
-            "💰 Money",
-            f"Income: {money(finance['salary'])}\n"
-            f"Commitments: {money(finance['commitments'])}\n"
-            f"Available: {money(finance['available'])}\n"
-            f"Status: {finance['health']}",
-        ),
+        "💰 Money",
+            f"Income received: {money(money_summary['income'])}\n"
+            f"Spent: {money(money_summary['expenses'])}\n"
+            f"Allocated: {money(money_summary['allocated'])}\n"
+            f"Available to spend: "
+            f"{money(money_summary['available_money'])}",
+),
         info_widget(
             "📅 Today",
             calendar["next_event"],
@@ -120,8 +135,3 @@ def get_dashboard_message():
         VERSION,
     )
     
-EXPENSE_LOG_SHEET = "Expense Log"
-
-
-def get_expense_log_sheet():
-    return get_worksheet_values(EXPENSE_LOG_SHEET)
