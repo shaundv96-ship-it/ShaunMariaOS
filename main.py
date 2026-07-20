@@ -5,6 +5,7 @@ Main Telegram Bot Application
 """
 
 from datetime import datetime
+from html import escape
 
 from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -45,6 +46,8 @@ from apps.menu_keyboard import (
     get_system_menu_buttons,
     get_wedding_menu_buttons,
 )
+from apps.money_engine import get_money_dashboard
+
 from apps.menu_navigation import handle_menu_button
 from apps.notification_engine import get_notification_message
 from apps.salary_engine import get_salary_dashboard
@@ -130,12 +133,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 /timeline - Wedding timeline
 
 <b>Money</b>
-/finance - Finance dashboard
-/salary - Salary dashboard
-/bills - Monthly bills
-/insurance - Insurance dashboard
-/expense - Add an expense
-/expenses - Monthly expense summary
+/money - MoneyOS dashboard
+/finance - Finance details
+/salary - Salary
+/bills - Bills
+/insurance - Insurance
+/expense - Add expense
+/expenses - Expense summary
 
 <b>Calendar</b>
 /today - Today's schedule
@@ -307,13 +311,15 @@ async def expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     try:
         expense = parse_expense_command(context.args)
         await save_and_confirm_expense(update, expense)
+
     except ValueError as error:
         await reply_with_main_keyboard(
             update,
             f"""⚠️ <b>Expense Not Added</b>
 
-{error}""",
+{escape(str(error))}""",
         )
+
     except Exception:
         logger.exception("Failed to add expense.")
         await reply_with_main_keyboard(
@@ -322,8 +328,6 @@ async def expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 Something went wrong while updating Google Sheets.""",
         )
-
-
 async def expenses_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show the monthly Expense Log summary."""
     try:
@@ -335,6 +339,12 @@ async def expenses_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 Something went wrong while reading the Expense Log."""
     await reply_with_main_keyboard(update, message)
 
+async def money_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await reply_with_inline_keyboard(
+        update,
+        get_money_dashboard(),
+        get_money_menu_buttons(),
+    )
 
 async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_inline_keyboard(
@@ -394,7 +404,7 @@ async def text_button_handler(
             get_wedding_menu_buttons,
         ),
         "💰 Money": (
-            get_finance_dashboard,
+            get_money_dashboard,
             get_money_menu_buttons,
         ),
         "❤️ Dashboard": (
@@ -459,6 +469,7 @@ def register_handlers(app) -> None:
         "weddingbudget": wedding_budget_command,
         "guestlist": guestlist_command,
         "timeline": timeline_command,
+        "money": money_command,
         "finance": finance_command,
         "salary": salary_command,
         "bills": bills_command,
@@ -471,6 +482,7 @@ def register_handlers(app) -> None:
         "changelog": changelog_command,
         "chatid": chatid_command,
         "tasks": tasks_command,
+        
     }
 
     for command, callback in command_handlers.items():
