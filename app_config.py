@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 APP_NAME = "ShaunMariaOS"
-APP_VERSION = "1.2.2"
+APP_VERSION = "1.4.0"
 APP_STAGE = "Alpha"
 APP_CODENAME = "Foundation"
 

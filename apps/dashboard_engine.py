@@ -74,12 +74,18 @@ def safe_advice():
     try:
         advice = get_advisor()
     except Exception:
-        return "⚠️ Advice temporarily unavailable."
+        return "⚠️ Advisor temporarily unavailable."
 
     if not advice:
-        return "Everything looks good today."
+        return "🎉 Everything looks good today."
 
-    return "\n".join(f"• {item}" for item in advice)
+    return "\n".join(
+        f"{index}. {item}"
+        for index, item in enumerate(
+            advice[:5],
+            start=1,
+        )
+    )
 
 
 def get_dashboard_message():
@@ -112,7 +118,7 @@ def get_dashboard_message():
             f"Allocated: {money(money_summary['allocated'])}\n"
             f"Available to spend: "
             f"{money(money_summary['available_money'])}",
-),
+        ),
         info_widget(
             "📅 Today",
             calendar["next_event"],
@@ -126,6 +132,11 @@ def get_dashboard_message():
         info_widget(
             "🧠 Advisor",
             safe_advice(),
+        ),
+
+        info_widget(
+            "⚡ Today's Action",
+            get_next_action(),
         ),
     ]
 
