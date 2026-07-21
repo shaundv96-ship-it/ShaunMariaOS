@@ -9,7 +9,7 @@ from pathlib import Path
 
 from googleapiclient.discovery import build
 
-from apps.sheets_engine import get_google_credentials
+from apps.google_engine import get_google_credentials
 from config import GOOGLE_CALENDAR_ID
 from utils.time import SINGAPORE_TZ, sg_now
 from config import GOOGLE_CALENDAR_ID
