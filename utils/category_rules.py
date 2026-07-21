@@ -64,7 +64,7 @@ CATEGORY_RULES = {
         "netflix",
         "spotify",
         "disney+",
-        "prime",s
+        "prime",
         "movie",
         "cinema",
     ],
