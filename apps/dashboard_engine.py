@@ -11,7 +11,10 @@ from app_config import (
     HOME_NAME,
     HOME_TOP,
 )
-from apps.advisor_engine import get_advisor
+from apps.advisor_engine import (
+    get_advisor,
+    get_next_action,
+)
 from apps.formatting_engine import money
 from apps.greeting_engine import get_greeting
 from apps.summary_engine import get_system_summary

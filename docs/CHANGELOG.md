@@ -162,3 +162,22 @@
 - Google authentication
 - Logging
 - Error handling
+
+# ShaunMariaOS
+
+## v1.4.0 Alpha
+
+### Added
+- MoneyOS
+- AdvisorOS
+- Dashboard integration
+- Natural language expense logging
+
+### Improved
+- Money calculations
+- Advisor prioritisation
+- Dashboard layout
+
+### Fixed
+- Expense validation
+- Money consistency across modules
