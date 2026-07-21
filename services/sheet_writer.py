@@ -9,13 +9,13 @@ from typing import Any
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from apps.sheets_engine import get_credentials
+from apps.google_engine import get_google_credentials
 from config import GOOGLE_SHEET_ID
 
 
 def get_sheet_service():
     """Return an authenticated Google Sheets service."""
-    credentials = get_credentials()
+    credentials = get_google_credentials()
 
     return build(
         "sheets",
