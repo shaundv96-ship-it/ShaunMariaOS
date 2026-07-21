@@ -134,63 +134,52 @@ def register_morning_briefing(application):
     """Register the daily morning briefing."""
 
     if DEBUG:
-        application.job_queue.run_repeating(
-            send_morning_briefing,
-            interval=60,
-            first=10,
-            name="morning_briefing_test",
-        )
-
         logger.info(
-            "Morning briefing registered in DEBUG mode."
+            "DEBUG mode: Morning briefing scheduler disabled."
         )
 
-    else:
-        application.job_queue.run_daily(
-            send_morning_briefing,
-            time=time(
-                hour=MORNING_BRIEFING_HOUR,
-                minute=MORNING_BRIEFING_MINUTE,
-                tzinfo=TIMEZONE,
-            ),
-            name="morning_briefing_daily",
-        )
+        # Intentionally disabled to avoid Google Sheets quota usage
+        return
 
-        logger.info(
-            "Morning briefing registered in PRODUCTION mode."
-        )
+    application.job_queue.run_daily(
+        send_morning_briefing,
+        time=time(
+            hour=MORNING_BRIEFING_HOUR,
+            minute=MORNING_BRIEFING_MINUTE,
+            tzinfo=TIMEZONE,
+        ),
+        name="morning_briefing_daily",
+    )
+
+    logger.info(
+        "Morning briefing registered in PRODUCTION mode."
+    )
 
 
 def register_evening_task_reminder(application):
     """Register the daily 6 PM task reminder."""
 
     if DEBUG:
-        application.job_queue.run_repeating(
-            send_evening_task_reminder,
-            interval=60,
-            first=20,
-            name="evening_task_reminder_test",
-        )
-
         logger.info(
-            "Evening task reminder registered in DEBUG mode."
+            "DEBUG mode: Evening task reminder scheduler disabled."
         )
 
-    else:
-        application.job_queue.run_daily(
-            send_evening_task_reminder,
-            time=time(
-                hour=EVENING_TASK_HOUR,
-                minute=EVENING_TASK_MINUTE,
-                tzinfo=TIMEZONE,
-            ),
-            name="evening_task_reminder_daily",
-        )
+        # Intentionally disabled to avoid Google Sheets quota usage
+        return
 
-        logger.info(
-            "Evening task reminder registered "
-            "for 6:00 PM Singapore time."
-        )
+    application.job_queue.run_daily(
+        send_evening_task_reminder,
+        time=time(
+            hour=EVENING_TASK_HOUR,
+            minute=EVENING_TASK_MINUTE,
+            tzinfo=TIMEZONE,
+        ),
+        name="evening_task_reminder_daily",
+    )
+
+    logger.info(
+        "Evening task reminder registered for 6:00 PM Singapore time."
+    )
 
 
 def start_scheduler(application):
