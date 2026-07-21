@@ -7,54 +7,24 @@ Calendar Engine
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+from apps.sheets_engine import get_google_credentials
+from config import GOOGLE_CALENDAR_ID
+from utils.time import SINGAPORE_TZ, sg_now
 from config import GOOGLE_CALENDAR_ID
 from utils.time import SINGAPORE_TZ, sg_now
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-CREDENTIALS_FILE = BASE_DIR / "credentials.json"
-TOKEN_FILE = BASE_DIR / "token.json"
-
-SCOPES = [
-    "https://www.googleapis.com/auth/calendar.readonly",
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/drive.readonly",
-]
-
 
 def get_calendar_service():
-    """Create and return an authenticated Google Calendar service."""
-    credentials = None
+    """
+    Return an authenticated Google Calendar service.
 
-    if TOKEN_FILE.exists():
-        credentials = Credentials.from_authorized_user_file(
-            TOKEN_FILE,
-            SCOPES,
-        )
+    Uses the same authentication method as Sheets.
+    """
 
-    if not credentials or not credentials.valid:
-        if (
-            credentials
-            and credentials.expired
-            and credentials.refresh_token
-        ):
-            credentials.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                CREDENTIALS_FILE,
-                SCOPES,
-            )
-            credentials = flow.run_local_server(port=0)
-
-        TOKEN_FILE.write_text(
-            credentials.to_json(),
-            encoding="utf-8",
-        )
+    credentials = get_google_credentials()
 
     return build(
         "calendar",

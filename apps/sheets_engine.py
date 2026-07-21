@@ -21,7 +21,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.append(str(BASE_DIR))
 
 
-from config import GOOGLE_SHEET_ID, SHEETS_SCOPES
+from config import GOOGLE_SHEET_ID, GOOGLE_SCOPES
 
 
 CREDENTIALS_FILE = BASE_DIR / "credentials.json"
@@ -45,7 +45,7 @@ def get_local_credentials():
     if TOKEN_FILE.exists():
         credentials = UserCredentials.from_authorized_user_file(
             str(TOKEN_FILE),
-            SHEETS_SCOPES,
+            GOOGLE_SCOPES,
         )
 
     if (
@@ -68,7 +68,7 @@ def get_local_credentials():
 
         flow = InstalledAppFlow.from_client_secrets_file(
             str(CREDENTIALS_FILE),
-            SHEETS_SCOPES,
+            GOOGLE_SCOPES,
         )
 
         credentials = flow.run_local_server(port=0)
@@ -119,7 +119,7 @@ def get_service_account_credentials(service_account_json):
 
     return ServiceCredentials.from_service_account_info(
         credentials_info,
-        scopes=SHEETS_SCOPES,
+        scopes=GOOGLE_SCOPES,
     )
 
 
@@ -194,6 +194,12 @@ def get_worksheet_values(sheet_name):
 
     return worksheet.get_all_values()
 
+def get_google_credentials():
+    """
+    Shared Google credentials used by other engines.
+    """
+
+    return get_credentials()
 
 # ==========================================================
 # Testing
