@@ -4,9 +4,16 @@ ShaunMariaOS
 Advisor Engine
 """
 
+import logging
+from typing import Any
+
 from apps.formatting_engine import money
 from apps.money_engine import get_money_summary
 from apps.summary_engine import get_system_summary
+
+
+logger = logging.getLogger(__name__)
+
 
 # ======================================================
 # PRIORITIES
@@ -24,33 +31,86 @@ MAX_ADVICE = 5
 # HELPERS
 # ======================================================
 
-def add(advice, priority, message):
-    """Add one advisor message."""
+def add(
+    advice: list[tuple[int, str]],
+    priority: int,
+    message: str,
+) -> None:
+    """Add one AdvisorOS message."""
+
     advice.append((priority, message))
+
+
+def safe_number(
+    value: Any,
+    default: float = 0.0,
+) -> float:
+    """Convert a value to float safely."""
+
+    try:
+        if value in (None, "", "-"):
+            return default
+
+        return float(value)
+
+    except (TypeError, ValueError):
+        return default
 
 
 # ======================================================
 # MONEY
 # ======================================================
 
-def money_advice():
+def money_advice() -> list[tuple[int, str]]:
+    """Generate advice from MoneyOS."""
 
     advice = []
 
     try:
         summary = get_money_summary()
+
     except Exception:
+        logger.exception(
+            "AdvisorOS could not load MoneyOS."
+        )
+
         add(
             advice,
             WARNING,
-            "⚠️ Money information is unavailable."
+            "⚠️ Money information is unavailable.",
         )
+
         return advice
 
-    income = summary["income"]
-    expenses = summary["expenses"]
-    allocated = summary["allocated"]
-    available = summary["available_money"]
+    if not isinstance(summary, dict):
+        logger.error(
+            "MoneyOS returned an unexpected value: %r",
+            summary,
+        )
+
+        add(
+            advice,
+            WARNING,
+            "⚠️ Money information is unavailable.",
+        )
+
+        return advice
+
+    income = safe_number(
+        summary.get("income"),
+    )
+
+    expenses = safe_number(
+        summary.get("expenses"),
+    )
+
+    allocated = safe_number(
+        summary.get("allocated"),
+    )
+
+    available = safe_number(
+        summary.get("available_money"),
+    )
 
     # Income
 
@@ -58,7 +118,7 @@ def money_advice():
         add(
             advice,
             WARNING,
-            "💰 No income has been received this month."
+            "💰 No income has been received this month.",
         )
 
     # Available cash
@@ -67,28 +127,28 @@ def money_advice():
         add(
             advice,
             CRITICAL,
-            f"🚨 You are {money(abs(available))} over budget."
+            f"🚨 You are {money(abs(available))} over budget.",
         )
 
     elif available < 300:
         add(
             advice,
             WARNING,
-            f"⚠️ Only {money(available)} remains available."
+            f"⚠️ Only {money(available)} remains available.",
         )
 
     elif available < 1000:
         add(
             advice,
             INFO,
-            f"💰 {money(available)} remains available."
+            f"💰 {money(available)} remains available.",
         )
 
     else:
         add(
             advice,
             POSITIVE,
-            "✅ Your cash position looks healthy."
+            "✅ Your cash position looks healthy.",
         )
 
     # Allocations
@@ -97,27 +157,36 @@ def money_advice():
         add(
             advice,
             CRITICAL,
-            "🚨 Allocated funds exceed income."
+            "🚨 Allocated funds exceed income.",
         )
 
     # Expenses
 
     if income > 0:
+        spending_percentage = (
+            expenses / income
+        ) * 100
 
-        spending = (expenses / income) * 100
-
-        if spending >= 90:
+        if spending_percentage >= 90:
             add(
                 advice,
                 WARNING,
-                f"⚠️ You've spent {spending:.1f}% of this month's income."
+                (
+                    "⚠️ You've spent "
+                    f"{spending_percentage:.1f}% "
+                    "of this month's income."
+                ),
             )
 
-        elif spending >= 70:
+        elif spending_percentage >= 70:
             add(
                 advice,
                 INFO,
-                f"💳 Spending is at {spending:.1f}% this month."
+                (
+                    "💳 Spending is at "
+                    f"{spending_percentage:.1f}% "
+                    "this month."
+                ),
             )
 
     return advice
@@ -127,75 +196,104 @@ def money_advice():
 # WEDDING
 # ======================================================
 
-def wedding_advice(wedding):
+def wedding_advice(
+    wedding: dict,
+) -> list[tuple[int, str]]:
+    """Generate advice from wedding data."""
 
     advice = []
 
-    days = wedding.get("days_remaining", "-")
-    shortfall = wedding.get("shortfall", 0)
-    paid = wedding.get("paid_percentage", 0)
+    if not isinstance(wedding, dict):
+        add(
+            advice,
+            WARNING,
+            "⚠️ Wedding information is unavailable.",
+        )
+        return advice
 
-    if isinstance(days, int):
+    days_value = wedding.get(
+        "days_remaining",
+        "-",
+    )
 
+    shortfall = safe_number(
+        wedding.get("shortfall"),
+    )
+
+    paid_percentage = safe_number(
+        wedding.get("paid_percentage"),
+    )
+
+    try:
+        days = int(days_value)
+
+    except (TypeError, ValueError):
+        days = None
+
+    if days is not None:
         if days <= 30:
             add(
                 advice,
                 CRITICAL,
-                f"💍 Only {days} days until the wedding!"
+                f"💍 Only {days} days until the wedding!",
             )
 
         elif days <= 90:
             add(
                 advice,
                 WARNING,
-                f"💍 {days} days until the wedding."
+                f"💍 {days} days until the wedding.",
             )
 
         elif days <= 180:
             add(
                 advice,
                 INFO,
-                f"💍 {days} days remaining."
+                f"💍 {days} days remaining.",
             )
 
     if shortfall > 0:
-
         add(
             advice,
             WARNING,
-            f"💳 Wedding fund is short by {money(shortfall)}."
+            (
+                "💳 Wedding fund is short by "
+                f"{money(shortfall)}."
+            ),
         )
 
-    elif paid >= 100:
-
+    elif paid_percentage >= 100:
         add(
             advice,
             POSITIVE,
-            "🎉 Wedding budget fully funded."
+            "🎉 Wedding budget fully funded.",
         )
 
-    elif paid >= 60:
-
+    elif paid_percentage >= 60:
         add(
             advice,
             POSITIVE,
-            f"🎉 {paid:.1f}% of the wedding budget is paid."
+            (
+                f"🎉 {paid_percentage:.1f}% of the "
+                "wedding budget is paid."
+            ),
         )
 
-    seats = wedding.get("seats_available")
+    seats_value = wedding.get(
+        "seats_available",
+    )
 
     try:
-        seats = int(seats)
+        seats = int(seats_value)
 
-        if seats <= 10:
-
+        if 0 <= seats <= 10:
             add(
                 advice,
                 WARNING,
-                f"👥 Only {seats} guest seats remain."
+                f"👥 Only {seats} guest seats remain.",
             )
 
-    except Exception:
+    except (TypeError, ValueError):
         pass
 
     return advice
@@ -205,65 +303,102 @@ def wedding_advice(wedding):
 # CALENDAR
 # ======================================================
 
-def calendar_advice(calendar):
+def calendar_advice(
+    calendar: dict,
+) -> list[tuple[int, str]]:
+    """Generate advice from today's calendar."""
 
     advice = []
 
-    events = calendar.get("event_count", 0)
-
-    if events == 0:
-
-        add(
-            advice,
-            POSITIVE,
-            "📅 Your calendar is clear today."
-        )
-
-    elif events <= 2:
-
-        add(
-            advice,
-            INFO,
-            f"📅 {events} event(s) scheduled today."
-        )
-
-    elif events <= 4:
-
+    if not isinstance(calendar, dict):
         add(
             advice,
             WARNING,
-            f"📅 Busy day with {events} events."
+            "⚠️ Calendar information is unavailable.",
+        )
+        return advice
+
+    next_event = str(
+        calendar.get("next_event", "")
+    ).lower()
+
+    if "unavailable" in next_event:
+        add(
+            advice,
+            WARNING,
+            "⚠️ Calendar information is unavailable.",
+        )
+        return advice
+
+    events = int(
+        safe_number(
+            calendar.get("event_count"),
+        )
+    )
+
+    if events == 0:
+        add(
+            advice,
+            POSITIVE,
+            "📅 Your calendar is clear today.",
+        )
+
+    elif events <= 2:
+        add(
+            advice,
+            INFO,
+            f"📅 {events} event(s) scheduled today.",
+        )
+
+    elif events <= 4:
+        add(
+            advice,
+            WARNING,
+            f"📅 Busy day with {events} events.",
         )
 
     else:
-
         add(
             advice,
             CRITICAL,
-            f"📅 Very busy day ({events} events)."
+            f"📅 Very busy day ({events} events).",
         )
 
     return advice
 
 
 # ======================================================
-# MAIN
+# MAIN ADVISOR
 # ======================================================
 
-def get_advisor():
+def get_advisor() -> list[str]:
     """
-    Returns advisor messages sorted by importance.
+    Return AdvisorOS messages sorted by importance.
     """
 
     try:
         summary = get_system_summary()
+
     except Exception:
+        logger.exception(
+            "AdvisorOS failed while loading the system summary."
+        )
 
         return [
-            "⚠️ Advisor unavailable."
+            "⚠️ Advisor information is temporarily unavailable."
         ]
 
-    advice = []
+    if not isinstance(summary, dict):
+        logger.error(
+            "System summary returned an unexpected value: %r",
+            summary,
+        )
+
+        return [
+            "⚠️ Advisor information is temporarily unavailable."
+        ]
+
+    advice: list[tuple[int, str]] = []
 
     advice.extend(
         money_advice()
@@ -271,13 +406,13 @@ def get_advisor():
 
     advice.extend(
         wedding_advice(
-            summary["wedding"]
+            summary.get("wedding", {}),
         )
     )
 
     advice.extend(
         calendar_advice(
-            summary["calendar"]
+            summary.get("calendar", {}),
         )
     )
 
@@ -290,22 +425,52 @@ def get_advisor():
         for _, message in advice[:MAX_ADVICE]
     ]
 
-def get_next_action():
 
-    advice = get_advisor()
+# ======================================================
+# TODAY'S ACTION
+# ======================================================
+
+def get_next_action() -> str:
+    """Return one practical action based on top advice."""
+
+    try:
+        advice = get_advisor()
+
+    except Exception:
+        logger.exception(
+            "AdvisorOS failed while selecting today's action."
+        )
+
+        return "⚠️ Today's action is temporarily unavailable."
 
     if not advice:
         return "🎉 No urgent actions today."
 
     first = advice[0]
+    first_lower = first.lower()
 
-    if "income" in first.lower():
+    if "unavailable" in first_lower:
+        return "🔄 Check the system connection and logs."
+
+    if "over budget" in first_lower:
+        return "💳 Review today's spending and reduce non-essential expenses."
+
+    if "income" in first_lower:
         return "💰 Log this month's salary."
 
-    if "wedding" in first.lower():
-        return "💍 Review the wedding budget."
+    if "allocated funds" in first_lower:
+        return "📊 Review your monthly allocations."
 
-    if "guest" in first.lower():
+    if "wedding fund" in first_lower:
+        return "💍 Review the wedding savings plan."
+
+    if "wedding" in first_lower:
+        return "💍 Review the next wedding priority."
+
+    if "guest seats" in first_lower:
         return "👥 Finalise the remaining guest seats."
+
+    if "busy day" in first_lower:
+        return "📅 Review today's schedule and priorities."
 
     return "✅ Review today's advisor."
