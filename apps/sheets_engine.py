@@ -8,19 +8,21 @@ import os
 import sys
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-sys.path.append(str(BASE_DIR))
-
 import gspread
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials as UserCredentials
 from google.oauth2.service_account import Credentials as ServiceCredentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from config import (
-    GOOGLE_SHEET_ID,
-    SHEETS_SCOPES,
-)
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
+
+
+from config import GOOGLE_SHEET_ID, SHEETS_SCOPES
+
 
 CREDENTIALS_FILE = BASE_DIR / "credentials.json"
 TOKEN_FILE = BASE_DIR / "token.json"
@@ -32,45 +34,100 @@ TOKEN_FILE = BASE_DIR / "token.json"
 
 def get_local_credentials():
     """
-    Desktop OAuth login for local development.
-    Creates token.json on first login.
+    Load desktop OAuth credentials for local development.
+
+    Uses token.json when available.
+    Opens a browser only when a new local login is required.
     """
 
-    creds = None
+    credentials = None
 
     if TOKEN_FILE.exists():
-        creds = UserCredentials.from_authorized_user_file(
-            TOKEN_FILE,
+        credentials = UserCredentials.from_authorized_user_file(
+            str(TOKEN_FILE),
             SHEETS_SCOPES,
         )
 
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
+    if (
+        credentials
+        and credentials.expired
+        and credentials.refresh_token
+    ):
+        credentials.refresh(Request())
 
-    if not creds or not creds.valid:
+        TOKEN_FILE.write_text(
+            credentials.to_json(),
+            encoding="utf-8",
+        )
+
+    if not credentials or not credentials.valid:
+        if not CREDENTIALS_FILE.exists():
+            raise FileNotFoundError(
+                "credentials.json was not found for local Google OAuth."
+            )
 
         flow = InstalledAppFlow.from_client_secrets_file(
             str(CREDENTIALS_FILE),
             SHEETS_SCOPES,
         )
 
-        creds = flow.run_local_server(port=0)
+        credentials = flow.run_local_server(port=0)
 
         TOKEN_FILE.write_text(
-            creds.to_json(),
+            credentials.to_json(),
             encoding="utf-8",
         )
 
-    return creds
+    return credentials
+
+
+def get_service_account_credentials(service_account_json):
+    """
+    Build Railway service-account credentials from JSON stored
+    in GOOGLE_SERVICE_ACCOUNT_JSON.
+    """
+
+    try:
+        credentials_info = json.loads(service_account_json)
+    except json.JSONDecodeError as error:
+        raise ValueError(
+            "GOOGLE_SERVICE_ACCOUNT_JSON contains invalid JSON."
+        ) from error
+
+    required_fields = {
+        "type",
+        "project_id",
+        "private_key",
+        "client_email",
+        "token_uri",
+    }
+
+    missing_fields = required_fields.difference(credentials_info)
+
+    if missing_fields:
+        missing_text = ", ".join(sorted(missing_fields))
+
+        raise ValueError(
+            "GOOGLE_SERVICE_ACCOUNT_JSON is missing required fields: "
+            f"{missing_text}"
+        )
+
+    if credentials_info.get("type") != "service_account":
+        raise ValueError(
+            "GOOGLE_SERVICE_ACCOUNT_JSON is not a service-account key."
+        )
+
+    return ServiceCredentials.from_service_account_info(
+        credentials_info,
+        scopes=SHEETS_SCOPES,
+    )
 
 
 def get_credentials():
     """
-    Railway:
-        Uses GOOGLE_SERVICE_ACCOUNT_JSON
+    Use service-account authentication on Railway.
 
-    Local:
-        Uses OAuth login (token.json)
+    Fall back to desktop OAuth during local development.
     """
 
     service_account_json = os.getenv(
@@ -78,20 +135,12 @@ def get_credentials():
     )
 
     if service_account_json:
-
-        print("Using Railway Service Account")
-
-        credentials_info = json.loads(
+        print("Google Sheets authentication: service account")
+        return get_service_account_credentials(
             service_account_json
         )
 
-        return ServiceCredentials.from_service_account_info(
-            credentials_info,
-            scopes=SCOPES,
-        )
-
-    print("Using Local OAuth Login")
-
+    print("Google Sheets authentication: local OAuth")
     return get_local_credentials()
 
 
@@ -100,16 +149,32 @@ def get_credentials():
 # ==========================================================
 
 def get_sheets_client():
-    return gspread.authorize(get_credentials())
+    """Return an authenticated gspread client."""
+
+    credentials = get_credentials()
+    return gspread.authorize(credentials)
 
 
 def get_spreadsheet():
+    """Open the ShaunMariaOS spreadsheet."""
+
+    if not GOOGLE_SHEET_ID:
+        raise ValueError(
+            "GOOGLE_SHEET_ID environment variable is missing."
+        )
+
     client = get_sheets_client()
-    return client.open_by_key(GOOGLE_SHEET_ID)
+
+    return client.open_by_key(
+        GOOGLE_SHEET_ID
+    )
 
 
 def list_sheet_names():
+    """Return all worksheet names."""
+
     spreadsheet = get_spreadsheet()
+
     return [
         worksheet.title
         for worksheet in spreadsheet.worksheets()
@@ -117,8 +182,16 @@ def list_sheet_names():
 
 
 def get_worksheet_values(sheet_name):
+    """Return every populated value from a worksheet."""
+
+    if not sheet_name:
+        raise ValueError(
+            "A worksheet name must be provided."
+        )
+
     spreadsheet = get_spreadsheet()
     worksheet = spreadsheet.worksheet(sheet_name)
+
     return worksheet.get_all_values()
 
 
@@ -127,8 +200,7 @@ def get_worksheet_values(sheet_name):
 # ==========================================================
 
 if __name__ == "__main__":
+    print("Available Sheets:")
 
-    print("Available Sheets")
-
-    for sheet in list_sheet_names():
-        print("-", sheet)
+    for sheet_name in list_sheet_names():
+        print("-", sheet_name)
