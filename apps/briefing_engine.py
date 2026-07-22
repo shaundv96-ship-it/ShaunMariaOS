@@ -7,21 +7,20 @@ Briefing Engine
 from utils.time import sg_now
 
 from apps.greeting_engine import get_greeting
-from apps.summary_engine import get_system_summary
-from apps.advisor_engine import get_advisor
+from apps.life_engine import get_life_snapshot
 from apps.formatting_engine import money
 
 
 def get_daily_briefing():
-    summary = get_system_summary()
+    life = get_life_snapshot()
 
-    finance = summary["finance"]
-    wedding = summary["wedding"]
-    calendar = summary["calendar"]
+    finance = life["finance"]
+    wedding = life["wedding"]
+    calendar = life["calendar"]
 
     today = sg_now().strftime("%A, %d %B %Y")
 
-    advice = get_advisor()
+    advice = life["advisor"]
     advice_text = (
         "\n".join(f"• {item}" for item in advice)
         if advice

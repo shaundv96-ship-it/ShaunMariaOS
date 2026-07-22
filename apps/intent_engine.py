@@ -82,6 +82,19 @@ def detect_intent(text: str) -> Intent:
         "collect ",
         "renew ",
         "pick up ",
+        "pay ",
+        "buy ",
+        "collect ",
+        "call ",
+        "text ",
+        "message ",
+        "visit ",
+        "book ",
+        "renew ",
+        "submit ",
+        "send ",
+        "email ",
+        "order ",
     )
 
     contains_amount = bool(

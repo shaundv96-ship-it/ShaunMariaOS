@@ -21,6 +21,7 @@ from app_config import APP_NAME
 from apps.about_engine import get_about
 from apps.bills_engine import get_bills_dashboard
 from apps.briefing_engine import get_daily_briefing
+from apps.evening_engine import get_evening_wrap
 from apps.calendar_engine import (
     format_today_events_for_telegram,
     format_tomorrow_events_for_telegram,
@@ -124,6 +125,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 /menu - Easy menu
 /dashboard - Main dashboard
 /briefing - Daily briefing
+/evening - Evening wrap
 /notifications - Active notifications
 
 <b>Wedding</b>
@@ -212,6 +214,14 @@ async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 async def briefing_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_main_keyboard(update, get_daily_briefing())
 
+async def evening_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    await reply_with_main_keyboard(
+        update,
+        get_evening_wrap(),
+    )
 
 async def notifications_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply_with_main_keyboard(update, get_notification_message())
@@ -464,6 +474,7 @@ def register_handlers(app) -> None:
         "tomorrow": tomorrow_command,
         "dashboard": dashboard_command,
         "briefing": briefing_command,
+        "evening": evening_command,
         "notifications": notifications_command,
         "wedding": wedding_command,
         "weddingbudget": wedding_budget_command,

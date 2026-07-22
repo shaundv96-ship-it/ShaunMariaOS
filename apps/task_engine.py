@@ -11,6 +11,10 @@ from apps.database_engine import (
     TASKS_SHEET,
     get_tasks_sheet,
 )
+from apps.task_category_rules import (
+    DEFAULT_TASK_CATEGORY,
+    detect_task_category,
+)
 from services.sheet_writer import (
     append_row,
     update_cells,
@@ -21,26 +25,28 @@ from utils.time import sg_now
 @dataclass
 class TaskEntry:
     task: str
+    category: str = DEFAULT_TASK_CATEGORY
     owner: str = ""
     priority: str = "Medium"
     due_date: str = ""
 
 
 def parse_task(text: str) -> TaskEntry | None:
-    """Extract a new task from natural language."""
+    """Extract and categorise a new task from natural language."""
 
     task_text = text.strip()
 
-    prefixes = [
+    prefixes = (
         "remember to ",
         "remind me to ",
         "need to ",
+        "add ",
         "todo ",
         "to do ",
         "task ",
-    ]
+    )
 
-    lowered = task_text.lower()
+    lowered = task_text.casefold()
 
     for prefix in prefixes:
         if lowered.startswith(prefix):
@@ -52,7 +58,10 @@ def parse_task(text: str) -> TaskEntry | None:
 
     task_text = task_text[0].upper() + task_text[1:]
 
-    return TaskEntry(task=task_text)
+    return TaskEntry(
+        task=task_text,
+        category=detect_task_category(task_text),
+    )
 
 
 def parse_task_completion(text: str) -> int | None:
@@ -65,8 +74,8 @@ def parse_task_completion(text: str) -> int | None:
         Completed #5
     """
 
-    match = re.match(
-        r"^(?:done|complete|completed)\s+#?(\d+)\s*$",
+    match = re.fullmatch(
+        r"(?:done|complete|completed)\s+#?(\d+)",
         text.strip(),
         re.IGNORECASE,
     )
@@ -80,7 +89,9 @@ def parse_task_completion(text: str) -> int | None:
 def get_next_task_id() -> int:
     """Return the next available numeric task ID."""
 
-    rows = get_tasks_sheet()
+    rows = get_tasks_sheet(
+    force_refresh=True,
+    )
     highest_id = 0
 
     for row in rows:
@@ -100,11 +111,11 @@ def get_next_task_id() -> int:
 def save_task(entry: TaskEntry) -> dict:
     """Append a new task to the Tasks worksheet."""
 
-    now = sg_now()
-    date_text = now.strftime("%d %B %Y")
+    date_text = sg_now().strftime("%d %B %Y")
+    task_id = get_next_task_id()
 
     values = [
-        get_next_task_id(),
+        task_id,
         entry.task,
         entry.owner,
         entry.priority,
@@ -113,12 +124,26 @@ def save_task(entry: TaskEntry) -> dict:
         "",
         "Open",
         date_text,
+        entry.category,
     ]
 
-    return append_row(
+    append_row(
         TASKS_SHEET,
         values,
     )
+
+    get_tasks_sheet(
+    force_refresh=True,
+    )
+
+    return {
+        "id": task_id,
+        "task": entry.task,
+        "category": entry.category,
+        "owner": entry.owner,
+        "priority": entry.priority,
+        "due_date": entry.due_date,
+    }
 
 
 def get_open_tasks() -> list[dict]:
@@ -136,17 +161,38 @@ def get_open_tasks() -> list[dict]:
         except (ValueError, TypeError):
             continue
 
-        status = str(row[7]).strip().lower()
+        status = str(row[7]).strip().casefold()
 
         if status != "open":
             continue
 
+        task_text = (
+            str(row[1]).strip()
+            if len(row) > 1
+            else ""
+        )
+
+        category = (
+            str(row[9]).strip()
+            if len(row) > 9 and str(row[9]).strip()
+            else detect_task_category(task_text)
+        )
+
         tasks.append(
             {
                 "id": task_id,
-                "task": str(row[1]).strip(),
-                "owner": str(row[2]).strip(),
-                "priority": str(row[3]).strip(),
+                "task": task_text,
+                "category": category,
+                "owner": (
+                    str(row[2]).strip()
+                    if len(row) > 2
+                    else ""
+                ),
+                "priority": (
+                    str(row[3]).strip()
+                    if len(row) > 3
+                    else "Medium"
+                ),
                 "due_date": (
                     str(row[4]).strip()
                     if len(row) > 4
@@ -154,6 +200,7 @@ def get_open_tasks() -> list[dict]:
                 ),
             }
         )
+    
 
     return tasks
 
@@ -161,7 +208,9 @@ def get_open_tasks() -> list[dict]:
 def complete_task(task_id: int) -> dict:
     """Mark a task as completed using its ID."""
 
-    rows = get_tasks_sheet()
+    rows = get_tasks_sheet(
+    force_refresh=True,
+    )
     target_row = None
     task_name = ""
 

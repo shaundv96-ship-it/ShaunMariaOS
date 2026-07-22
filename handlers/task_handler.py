@@ -9,6 +9,7 @@ from html import escape
 from telegram import Update
 
 from apps.menu_keyboard import get_persistent_main_keyboard
+from apps.task_category_icons import TASK_CATEGORY_ICONS
 from apps.task_engine import (
     complete_task,
     get_open_tasks,
@@ -18,6 +19,18 @@ from apps.task_engine import (
 )
 from apps.user_engine import get_user_profile
 from utils.logger import logger
+
+
+DEFAULT_TASK_ICON = "📌"
+
+
+def get_task_icon(category: str) -> str:
+    """Return the icon associated with a task category."""
+
+    return TASK_CATEGORY_ICONS.get(
+        category,
+        DEFAULT_TASK_ICON,
+    )
 
 
 def get_tasks_message() -> str:
@@ -37,11 +50,14 @@ def get_tasks_message() -> str:
 
     for task in tasks:
         task_text = escape(task["task"])
-        owner = escape(task["owner"])
-        priority = escape(task["priority"])
+        category = escape(task["category"])
+        owner = escape(task["owner"] or "Anyone")
+        priority = escape(task["priority"] or "Medium")
+        icon = get_task_icon(task["category"])
 
         sections.append(
-            f"\n\n<b>{task['id']}. {task_text}</b>"
+            f"\n\n{icon} <b>{task['id']}. {task_text}</b>"
+            f"\n🏷️ {category}"
             f"\n👤 {owner}"
             f"\n📌 {priority}"
         )
@@ -94,8 +110,10 @@ async def handle_task(
             logger.exception("Failed to complete task.")
 
             await update.message.reply_text(
-                "⚠️ <b>Task Not Updated</b>\n\n"
-                "Something went wrong while updating Google Sheets.",
+                (
+                    "⚠️ <b>Task Not Updated</b>\n\n"
+                    "Something went wrong while updating Google Sheets."
+                ),
                 parse_mode="HTML",
                 reply_markup=get_persistent_main_keyboard(),
             )
@@ -125,15 +143,21 @@ async def handle_task(
     task.owner = profile["owner"]
 
     try:
-        save_task(task)
+        saved_task = save_task(task)
+        icon = get_task_icon(task.category)
 
         await update.message.reply_text(
             (
                 "✅ <b>Task Added</b>\n\n"
-                f"📝 <b>Task</b>\n{escape(task.task)}\n\n"
-                f"👤 <b>Owner</b>\n{escape(task.owner)}\n\n"
+                f"{icon} <b>{escape(task.category)}</b>\n\n"
+                f"📝 <b>Task</b>\n"
+                f"{escape(task.task)}\n\n"
+                f"👤 <b>Owner</b>\n"
+                f"{escape(task.owner)}\n\n"
                 f"📌 <b>Priority</b>\n"
                 f"{escape(task.priority)}\n\n"
+                f"🔢 <b>Task ID</b>\n"
+                f"{saved_task['id']}\n\n"
                 "📋 Task list updated."
             ),
             parse_mode="HTML",
@@ -144,8 +168,10 @@ async def handle_task(
         logger.exception("Failed to save task.")
 
         await update.message.reply_text(
-            "⚠️ <b>Task Not Added</b>\n\n"
-            "Something went wrong while updating Google Sheets.",
+            (
+                "⚠️ <b>Task Not Added</b>\n\n"
+                "Something went wrong while updating Google Sheets."
+            ),
             parse_mode="HTML",
             reply_markup=get_persistent_main_keyboard(),
         )
