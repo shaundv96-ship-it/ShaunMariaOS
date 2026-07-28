@@ -58,17 +58,17 @@ TOKEN_FILE = BASE_DIR / "token.json"
 
 GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/calendar",
 ]
 
 OAUTH_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/drive.readonly",
 ]
 
 CALENDAR_SCOPES = [
-    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/calendar",
 ]
 
 # Temporary compatibility for engines still importing SCOPES

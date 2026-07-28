@@ -5,24 +5,32 @@ Sheet Parser
 Shared parser for Google Sheets.
 """
 
+from datetime import datetime
+
 from apps.database_engine import (
     get_budget_sheet,
+    get_expense_log_sheet,
     get_finance_sheet,
     get_guestlist_sheet,
-    get_expense_log_sheet,
 )
 from apps.status_engine import finance_status
 
 
-def number(value):
+# ====================================================
+# Shared Number Parser
+# ====================================================
+
+def number(value) -> float:
     """
     Convert values such as:
-    $4,877.50
-    4,877.50
-    4877.50
+
+        $4,877.50
+        4,877.50
+        4877.50
 
     into a float.
     """
+
     try:
         return float(
             str(value)
@@ -30,6 +38,7 @@ def number(value):
             .replace(",", "")
             .strip()
         )
+
     except (ValueError, TypeError):
         return 0.0
 
@@ -38,8 +47,15 @@ def number(value):
 # Wedding Budget
 # ====================================================
 
-def get_budget_summary():
-    rows = get_budget_sheet()
+def get_budget_summary(
+    *,
+    force_refresh: bool = False,
+) -> dict:
+    """Return the wedding budget summary."""
+
+    rows = get_budget_sheet(
+        force_refresh=force_refresh,
+    )
 
     budget = {
         "total_budget": 0.0,
@@ -49,7 +65,10 @@ def get_budget_summary():
     }
 
     for row in rows:
-        row_text = " ".join(str(cell) for cell in row)
+        row_text = " ".join(
+            str(cell)
+            for cell in row
+        )
 
         is_total_row = (
             len(row) >= 4
@@ -60,19 +79,36 @@ def get_budget_summary():
         )
 
         if is_total_row:
-            budget["total_budget"] = number(row[1])
-            budget["paid"] = number(row[2])
-            budget["balance"] = number(row[3])
+            budget["total_budget"] = number(
+                row[1]
+            )
 
-        if "Current Savings" in row_text and len(row) > 1:
-            budget["current_savings"] = number(row[1])
+            budget["paid"] = number(
+                row[2]
+            )
 
-    budget["shortfall"] = (
-        budget["balance"] - budget["current_savings"]
+            budget["balance"] = number(
+                row[3]
+            )
+
+        if (
+            "current savings" in row_text.lower()
+            and len(row) > 1
+        ):
+            budget["current_savings"] = number(
+                row[1]
+            )
+
+    budget["shortfall"] = max(
+        budget["balance"]
+        - budget["current_savings"],
+        0.0,
     )
 
     budget["paid_percentage"] = (
-        budget["paid"] / budget["total_budget"] * 100
+        budget["paid"]
+        / budget["total_budget"]
+        * 100
         if budget["total_budget"]
         else 0.0
     )
@@ -84,7 +120,9 @@ def get_budget_summary():
 # Guestlist
 # ====================================================
 
-def get_guest_summary():
+def get_guest_summary() -> dict:
+    """Return the wedding guest-list summary."""
+
     rows = get_guestlist_sheet()
 
     guest = {
@@ -103,6 +141,7 @@ def get_guest_summary():
     for row in rows:
         for index, cell in enumerate(row):
             value = str(cell).strip()
+
             next_value = (
                 row[index + 1]
                 if index + 1 < len(row)
@@ -113,27 +152,44 @@ def get_guest_summary():
                 total_counter += 1
 
                 if total_counter == 1:
-                    guest["shaun_total"] = next_value
+                    guest["shaun_total"] = (
+                        next_value
+                    )
+
                 elif total_counter == 2:
-                    guest["maria_total"] = next_value
+                    guest["maria_total"] = (
+                        next_value
+                    )
 
             elif "Total as of" in value:
-                guest["total_guests"] = next_value
+                guest["total_guests"] = (
+                    next_value
+                )
 
             elif value == "seats available":
-                guest["seats_available"] = next_value
+                guest["seats_available"] = (
+                    next_value
+                )
 
             elif value == "Cards:":
-                guest["cards_total"] = next_value
+                guest["cards_total"] = (
+                    next_value
+                )
 
             elif value == "Shaun:":
-                guest["cards_shaun"] = next_value
+                guest["cards_shaun"] = (
+                    next_value
+                )
 
             elif value == "Maria:":
-                guest["cards_maria"] = next_value
+                guest["cards_maria"] = (
+                    next_value
+                )
 
             elif value == "Balance:":
-                guest["cards_balance"] = next_value
+                guest["cards_balance"] = (
+                    next_value
+                )
 
     return guest
 
@@ -142,7 +198,9 @@ def get_guest_summary():
 # Finance
 # ====================================================
 
-def get_finance_summary():
+def get_finance_summary() -> dict:
+    """Return the active monthly finance summary."""
+
     rows = get_finance_sheet()
 
     income = 0.0
@@ -164,16 +222,30 @@ def get_finance_summary():
         match category:
             case "Income":
                 income += amount
+
             case "Savings":
                 savings += amount
+
             case "Bills":
                 bills += amount
+
             case "Insurance":
                 insurance += amount
 
-    commitments = savings + bills + insurance
-    available = income - commitments
-    health = finance_status(available)
+    commitments = (
+        savings
+        + bills
+        + insurance
+    )
+
+    available = (
+        income
+        - commitments
+    )
+
+    health = finance_status(
+        available
+    )
 
     return {
         "salary": income,
@@ -190,7 +262,9 @@ def get_finance_summary():
 # Bills
 # ====================================================
 
-def get_bills_summary():
+def get_bills_summary() -> dict:
+    """Return active bills sorted by priority."""
+
     rows = get_finance_sheet()
 
     bills = []
@@ -209,7 +283,10 @@ def get_bills_summary():
         category = str(row[1]).strip()
         status = str(row[8]).strip().lower()
 
-        if category != "Bills" or status != "active":
+        if (
+            category != "Bills"
+            or status != "active"
+        ):
             continue
 
         amount = number(row[4])
@@ -220,7 +297,9 @@ def get_bills_summary():
                 "item": str(row[2]).strip(),
                 "amount": amount,
                 "due": str(row[5]).strip(),
-                "priority": str(row[7]).strip().upper(),
+                "priority": str(
+                    row[7]
+                ).strip().upper(),
             }
         )
 
@@ -241,7 +320,9 @@ def get_bills_summary():
 # Insurance
 # ====================================================
 
-def get_insurance_summary():
+def get_insurance_summary() -> dict:
+    """Return all insurance policies and active totals."""
+
     rows = get_finance_sheet()
 
     policies = []
@@ -257,7 +338,10 @@ def get_insurance_summary():
             continue
 
         status = str(row[8]).strip()
-        is_active = status.lower() == "active"
+        is_active = (
+            status.lower() == "active"
+        )
+
         amount = number(row[4])
 
         if is_active:
@@ -269,7 +353,9 @@ def get_insurance_summary():
                 "owner": str(row[3]).strip(),
                 "amount": amount,
                 "due": str(row[5]).strip(),
-                "frequency": str(row[6]).strip(),
+                "frequency": str(
+                    row[6]
+                ).strip(),
                 "status": status,
                 "is_active": is_active,
             }
@@ -287,19 +373,21 @@ def get_insurance_summary():
         "policies": policies,
         "active_total": active_total,
         "active_count": sum(
-            1 for policy in policies
+            1
+            for policy in policies
             if policy["is_active"]
         ),
-        "policy_count": len(policies),
+        "policy_count": len(
+            policies
+        ),
     }
+
+
 # ====================================================
 # Expense Log
 # ====================================================
 
-from datetime import datetime
-
-
-def get_expense_summary():
+def get_expense_summary() -> dict:
     """Return a summary of this month's expenses."""
 
     rows = get_expense_log_sheet()
@@ -315,14 +403,10 @@ def get_expense_summary():
         "amount": 0.0,
     }
 
-    highest_category = ""
-    highest_category_total = 0.0
-
     current_month = datetime.now().month
     current_year = datetime.now().year
 
     for row in rows:
-
         if len(row) < 9:
             continue
 
@@ -331,7 +415,8 @@ def get_expense_summary():
                 row[0],
                 "%d-%b-%Y",
             )
-        except Exception:
+
+        except (ValueError, TypeError):
             continue
 
         if (
@@ -354,30 +439,45 @@ def get_expense_summary():
         summary["count"] += 1
 
         summary["categories"][category] = (
-            summary["categories"].get(category, 0)
+            summary["categories"].get(
+                category,
+                0.0,
+            )
             + amount
         )
 
-    if summary["categories"]:
+    highest_category = ""
+    highest_category_total = 0.0
 
+    if summary["categories"]:
         highest_category = max(
             summary["categories"],
             key=summary["categories"].get,
         )
 
-        highest_category_total = summary["categories"][
-            highest_category
-        ]
+        highest_category_total = (
+            summary["categories"][
+                highest_category
+            ]
+        )
 
-    average = (
-        summary["total"] / summary["count"]
+    summary["average"] = (
+        summary["total"]
+        / summary["count"]
         if summary["count"]
-        else 0
+        else 0.0
     )
 
-    summary["average"] = average
-    summary["largest_expense"] = largest_expense
-    summary["highest_category"] = highest_category
-    summary["highest_category_total"] = highest_category_total
+    summary["largest_expense"] = (
+        largest_expense
+    )
+
+    summary["highest_category"] = (
+        highest_category
+    )
+
+    summary["highest_category_total"] = (
+        highest_category_total
+    )
 
     return summary

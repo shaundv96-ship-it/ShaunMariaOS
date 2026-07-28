@@ -9,10 +9,13 @@ import re
 from apps.task_category_keywords import TASK_CATEGORY_KEYWORDS
 
 
-DEFAULT_TASK_CATEGORY = "Personal"
+DEFAULT_TASK_CATEGORY = "General"
 
 
-def contains_keyword(text: str, keyword: str) -> bool:
+def contains_keyword(
+    text: str,
+    keyword: str,
+) -> bool:
     """Return True when a keyword appears as a complete phrase."""
 
     pattern = rf"\b{re.escape(keyword.casefold())}\b"
@@ -23,12 +26,22 @@ def contains_keyword(text: str, keyword: str) -> bool:
     ) is not None
 
 
-def detect_task_category(task: str) -> str:
-    """Guess the most suitable category for a task."""
+def detect_task_category(
+    task: str,
+) -> str:
+    """
+    Guess the most suitable task category.
+
+    Specific category keywords take priority.
+    Tasks without a category match default to General.
+    """
 
     for category, keywords in TASK_CATEGORY_KEYWORDS.items():
         if any(
-            contains_keyword(task, keyword)
+            contains_keyword(
+                task,
+                keyword,
+            )
             for keyword in keywords
         ):
             return category

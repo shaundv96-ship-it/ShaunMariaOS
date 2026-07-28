@@ -209,7 +209,7 @@ def complete_task(task_id: int) -> dict:
     """Mark a task as completed using its ID."""
 
     rows = get_tasks_sheet(
-    force_refresh=True,
+        force_refresh=True,
     )
     target_row = None
     task_name = ""

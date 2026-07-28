@@ -13,4 +13,5 @@ TASK_CATEGORY_ICONS = {
     "Work": "💼",
     "Errands": "🛒",
     "Personal": "📌",
+    "General": "📦",
 }

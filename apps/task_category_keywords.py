@@ -5,22 +5,6 @@ Task Category Keywords
 """
 
 TASK_CATEGORY_KEYWORDS = {
-    "Relationships": (
-        "mum",
-        "mom",
-        "mother",
-        "dad",
-        "father",
-        "parent",
-        "parents",
-        "maria",
-        "family",
-        "call",
-        "text",
-        "message",
-        "visit",
-        "check in",
-    ),
 
     "Finance": (
         "pay",
@@ -36,7 +20,7 @@ TASK_CATEGORY_KEYWORDS = {
         "budget",
         "savings",
     ),
-
+    
     "Wedding": (
         "wedding",
         "vendor",
@@ -84,7 +68,6 @@ TASK_CATEGORY_KEYWORDS = {
         "office",
         "meeting",
         "report",
-        "email",
         "manager",
         "colleague",
         "pantry",
@@ -103,4 +86,31 @@ TASK_CATEGORY_KEYWORDS = {
         "deliver",
         "purchase",
     ),
+
+    "Relationships": (
+        "mum",
+        "mom",
+        "mother",
+        "dad",
+        "mummy",
+        "appa",
+        "denis",
+        "ma",
+        "nava",
+        "father",
+        "parent",
+        "parents",
+        "maria",
+        "family",
+        "visit",
+        "check in",
+    ),
+
+    "General": (
+    "call",
+    "text",
+    "message",
+    "email",
+    "contact",
+    )
 }

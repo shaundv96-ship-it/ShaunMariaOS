@@ -77,6 +77,13 @@ from handlers.task_handler import (
     get_tasks_message,
     handle_task,
 )
+from handlers.wedding_contribution_handler import (
+    handle_wedding_contribution,
+)
+from handlers.calendar_handler import handle_calendar
+from handlers.calendar_query_handler import (
+    handle_calendar_query,
+)
 
 async def reply_with_main_keyboard(update: Update, message: str) -> None:
     """Reply while restoring the persistent bottom keyboard."""
@@ -447,11 +454,14 @@ async def text_button_handler(
     intent = detect_intent(text)
 
     intent_handlers = {
-        "expense": handle_expense,
-        "income": handle_income,
-        "wedding": handle_wedding,
-        "task": handle_task,
-    }
+    "wedding_contribution": handle_wedding_contribution,
+    "calendar_query": handle_calendar_query,
+    "calendar": handle_calendar,
+    "expense": handle_expense,
+    "income": handle_income,
+    "wedding": handle_wedding,
+    "task": handle_task,
+}
 
     handler = intent_handlers.get(
         intent.name,

@@ -69,9 +69,8 @@ def get_tasks_message() -> str:
 
     sections.append(
     "\n\nComplete a task with:"
-    "\n<code>Done &lt;task ID&gt;</code>"
+    "\n<code>Done TASK_ID</code>"
     )
-
     return "".join(sections)
 
 

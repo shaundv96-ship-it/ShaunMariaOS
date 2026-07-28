@@ -58,12 +58,24 @@ def get_database_status():
 # Wedding Sheets
 # ====================================================
 
-def get_budget_sheet():
-    return get_worksheet_values(BUDGET_SHEET)
+def get_budget_sheet(
+    *,
+    force_refresh: bool = False,
+):
+    return get_worksheet_values(
+        BUDGET_SHEET,
+        force_refresh=force_refresh,
+    )
 
 
-def get_checklist_sheet():
-    return get_worksheet_values(CHECKLIST_SHEET)
+def get_checklist_sheet(
+    *,
+    force_refresh: bool = False,
+):
+    return get_worksheet_values(
+        CHECKLIST_SHEET,
+        force_refresh=force_refresh,
+    )
 
 
 def get_guestlist_sheet():

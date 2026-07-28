@@ -7,7 +7,7 @@ Determines which module should handle a message.
 
 from dataclasses import dataclass
 import re
-
+from apps.calendar_engine import normalize_calendar_text
 
 @dataclass
 class Intent:
@@ -22,6 +22,113 @@ def detect_intent(text: str) -> Intent:
     """
 
     text = text.lower().strip()
+    normalized_text = normalize_calendar_text(text)
+
+    # -------------------------
+    # Wedding Contribution
+    # -------------------------
+
+    wedding_contribution_patterns = (
+        r"\bwedding\s+fund\b",
+        r"\bwedding\s+savings?\b",
+        r"\badd\b.*\bwedding\b",
+        r"\bput\b.*\bwedding\b",
+        r"\bcontribut(?:e|ion)\b.*\bwedding\b",
+        r"\btransfer\b.*\bwedding\b",
+    )
+
+    has_wedding_contribution_phrase = any(
+        re.search(pattern, text)
+        for pattern in wedding_contribution_patterns
+    )
+
+    has_money_amount = bool(
+        re.search(
+            r"(?:"
+            r"\$\s*\d[\d,]*(?:\.\d{1,2})?"
+            r"|"
+            r"\d[\d,]*(?:\.\d{1,2})?\s*(?:dollars?|sgd)"
+            r")",
+            text,
+        )
+    )
+
+    if (
+        has_wedding_contribution_phrase
+        and has_money_amount
+    ):
+        return Intent(
+            "wedding_contribution",
+            1.0,
+        )
+
+    # -------------------------
+    # Calendar
+    # -------------------------
+
+    calendar_date_pattern = re.compile(
+        r"\b("
+        r"today|tomorrow|"
+        r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
+        r"next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|"
+        r"\d{1,2}\s+"
+        r"(?:january|february|march|april|may|june|july|august|"
+        r"september|october|november|december)"
+        r"(?:\s+\d{4})?|"
+        r"\d{1,2}/\d{1,2}(?:/\d{2,4})?"
+        r")\b",
+        flags=re.IGNORECASE,
+    )
+
+    calendar_time_pattern = re.compile(
+        r"\b("
+        r"\d{1,2}(?::\d{2})?\s*(?:am|pm)|"
+        r"\d{1,2}\.\d{2}\s*(?:am|pm)|"
+        r"\d{1,2}:\d{2}|"
+        r"at\s+\d{1,2}(?::\d{2})?"
+        r")\b",
+        flags=re.IGNORECASE,
+    )
+
+    if (
+        calendar_date_pattern.search(normalized_text)
+        and calendar_time_pattern.search(normalized_text)
+    ):
+
+        return Intent("calendar", 0.98)
+
+    calendar_query_patterns = [
+    r"\bwhat('?s| is)? on\b",
+    r"\bnext meeting\b",
+    r"\b(am i|are we|are you)\s+free\b",
+    ]
+
+    for pattern in calendar_query_patterns:
+        if re.search(
+            pattern,
+            text,
+            re.IGNORECASE,
+        ):
+            return Intent(
+                "calendar_query",
+            0.99,
+            )
+
+    if any(
+        phrase in text.lower()
+        for phrase in calendar_query_patterns
+    ):
+
+        return Intent("calendar_query", 0.99)
+
+    if re.search(
+    r"\bwhat(?:'s| is)? on "
+    r"(?:today|tomorrow|monday|tuesday|wednesday|"
+    r"thursday|friday|saturday|sunday)\b",
+    text,
+    re.IGNORECASE,
+    ):
+        return Intent("calendar_query", 0.99)
 
     # -------------------------
     # Income
