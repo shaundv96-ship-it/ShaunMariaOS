@@ -7,7 +7,12 @@ Determines which module should handle a message.
 
 from dataclasses import dataclass
 import re
-from apps.calendar_engine import normalize_calendar_text
+
+from apps.calendar_parser import (
+    normalize_calendar_text,
+    parse_calendar_event,
+)
+
 
 @dataclass
 class Intent:
@@ -15,18 +20,20 @@ class Intent:
     confidence: float = 1.0
 
 
-def detect_intent(text: str) -> Intent:
+def detect_intent(
+    text: str,
+) -> Intent:
     """
-    Detect which ShaunMariaOS module should
-    handle the user's message.
+    Detect which ShaunMariaOS module should handle
+    the user's message.
     """
 
-    text = text.lower().strip()
+    text = text.strip().casefold()
     normalized_text = normalize_calendar_text(text)
 
-       # -------------------------
+    # =====================================================
     # Wedding Contribution
-    # -------------------------
+    # =====================================================
 
     short_wedding_contribution = bool(
         re.fullmatch(
@@ -53,7 +60,10 @@ def detect_intent(text: str) -> Intent:
     )
 
     has_wedding_contribution_phrase = any(
-        re.search(pattern, text)
+        re.search(
+            pattern,
+            text,
+        )
         for pattern in wedding_contribution_patterns
     )
 
@@ -62,7 +72,8 @@ def detect_intent(text: str) -> Intent:
             r"(?:"
             r"\$\s*\d[\d,]*(?:\.\d{1,2})?"
             r"|"
-            r"\d[\d,]*(?:\.\d{1,2})?\s*(?:dollars?|sgd)"
+            r"\d[\d,]*(?:\.\d{1,2})?"
+            r"\s*(?:dollars?|sgd)"
             r")",
             text,
         )
@@ -77,95 +88,68 @@ def detect_intent(text: str) -> Intent:
             1.0,
         )
 
-    # -------------------------
-    # Calendar
-    # -------------------------
+    # =====================================================
+    # Calendar Query
+    # =====================================================
 
-    calendar_date_pattern = re.compile(
-        r"\b("
-        r"today|tomorrow|"
-        r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
-        r"next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|"
-        r"\d{1,2}\s+"
-        r"(?:january|february|march|april|may|june|july|august|"
-        r"september|october|november|december)"
-        r"(?:\s+\d{4})?|"
-        r"\d{1,2}/\d{1,2}(?:/\d{2,4})?"
-        r")\b",
-        flags=re.IGNORECASE,
+    calendar_query_patterns = (
+        r"\bwhat(?:'s| is)?\s+on\b",
+        r"\bnext\s+meeting\b",
+        r"\b(?:am\s+i|are\s+we|are\s+you)\s+free\b",
     )
-
-    calendar_time_pattern = re.compile(
-        r"\b("
-        r"\d{1,2}(?::\d{2})?\s*(?:am|pm)|"
-        r"\d{1,2}\.\d{2}\s*(?:am|pm)|"
-        r"\d{1,2}:\d{2}|"
-        r"at\s+\d{1,2}(?::\d{2})?"
-        r")\b",
-        flags=re.IGNORECASE,
-    )
-
-    if (
-        calendar_date_pattern.search(normalized_text)
-        and calendar_time_pattern.search(normalized_text)
-    ):
-
-        return Intent("calendar", 0.98)
-
-    calendar_query_patterns = [
-    r"\bwhat('?s| is)? on\b",
-    r"\bnext meeting\b",
-    r"\b(am i|are we|are you)\s+free\b",
-    ]
-
-    for pattern in calendar_query_patterns:
-        if re.search(
-            pattern,
-            text,
-            re.IGNORECASE,
-        ):
-            return Intent(
-                "calendar_query",
-            0.99,
-            )
 
     if any(
-        phrase in text.lower()
-        for phrase in calendar_query_patterns
+        re.search(
+            pattern,
+            normalized_text,
+            re.IGNORECASE,
+        )
+        for pattern in calendar_query_patterns
     ):
+        return Intent(
+            "calendar_query",
+            0.99,
+        )
 
-        return Intent("calendar_query", 0.99)
+    # =====================================================
+    # Calendar Event
+    # =====================================================
 
-    if re.search(
-    r"\bwhat(?:'s| is)? on "
-    r"(?:today|tomorrow|monday|tuesday|wednesday|"
-    r"thursday|friday|saturday|sunday)\b",
-    text,
-    re.IGNORECASE,
-    ):
-        return Intent("calendar_query", 0.99)
+    if parse_calendar_event(
+        normalized_text
+    ) is not None:
+        return Intent(
+            "calendar",
+            0.98,
+        )
 
-    # -------------------------
+    # =====================================================
     # Income
-    # -------------------------
+    # =====================================================
 
-    income_keywords = [
+    income_keywords = (
         "salary",
         "bonus",
         "allowance",
         "commission",
         "income",
         "payday",
-    ]
+    )
 
-    if any(keyword in text for keyword in income_keywords):
-        return Intent("income", 0.95)
+    if any(
+        keyword in text
+        for keyword in income_keywords
+    ):
+        return Intent(
+            "income",
+            0.95,
+        )
 
-    # -------------------------
+    # =====================================================
     # Wedding
-    # -------------------------
+    # =====================================================
 
-    wedding_keywords = [
+    wedding_keywords = (
         "wedding",
         "florist",
         "bridal",
@@ -176,15 +160,22 @@ def detect_intent(text: str) -> Intent:
         "venue",
         "gown",
         "sherwani",
-    ]
+    )
 
-    if any(keyword in text for keyword in wedding_keywords):
-        return Intent("wedding", 0.90)
-    # -------------------------
+    if any(
+        keyword in text
+        for keyword in wedding_keywords
+    ):
+        return Intent(
+            "wedding",
+            0.90,
+        )
+
+    # =====================================================
     # Task
-    # -------------------------
+    # =====================================================
 
-    task_phrases = [
+    task_phrases = (
         "need to",
         "remember to",
         "remind me",
@@ -194,7 +185,7 @@ def detect_intent(text: str) -> Intent:
         "done ",
         "complete ",
         "completed ",
-    ]
+    )
 
     task_starters = (
         "get ",
@@ -205,14 +196,9 @@ def detect_intent(text: str) -> Intent:
         "renew ",
         "pick up ",
         "pay ",
-        "buy ",
-        "collect ",
-        "call ",
         "text ",
         "message ",
         "visit ",
-        "book ",
-        "renew ",
         "submit ",
         "send ",
         "email ",
@@ -221,33 +207,50 @@ def detect_intent(text: str) -> Intent:
 
     contains_amount = bool(
         re.search(
-            r"(?:\$\s*\d+(?:\.\d{1,2})?"
-            r"|\d+(?:\.\d{1,2})?\s*(?:dollars?|sgd))",
+            r"(?:"
+            r"\$\s*\d[\d,]*(?:\.\d{1,2})?"
+            r"|"
+            r"\d[\d,]*(?:\.\d{1,2})?"
+            r"\s*(?:dollars?|sgd)"
+            r")",
             text,
         )
     )
 
     if (
-        any(phrase in text for phrase in task_phrases)
+        any(
+            phrase in text
+            for phrase in task_phrases
+        )
         or (
-            text.startswith(task_starters)
+            text.startswith(
+                task_starters
+            )
             and not contains_amount
         )
     ):
-        return Intent("task", 0.90)
+        return Intent(
+            "task",
+            0.90,
+        )
 
-    # -------------------------
+    # =====================================================
     # Expense
-    # -------------------------
+    # =====================================================
 
     has_amount = bool(
         re.search(
-            r"(?:\$\s*\d+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?\s*(?:dollars?|sgd))",
+            r"(?:"
+            r"\$\s*\d[\d,]*(?:\.\d{1,2})?"
+            r"|"
+            r"\d[\d,]*(?:\.\d{1,2})?"
+            r"\s*(?:dollars?|sgd)"
+            r")",
             text,
         )
     )
 
-    expense_keywords = [
+    expense_keywords = (
         "spent",
         "paid",
         "bought",
@@ -263,14 +266,23 @@ def detect_intent(text: str) -> Intent:
         "fairprice",
         "giant",
         "sheng siong",
-    ]
+    )
 
     has_expense_keyword = any(
         keyword in text
         for keyword in expense_keywords
     )
 
-    if has_amount or has_expense_keyword:
-        return Intent("expense", 0.95)
+    if (
+        has_amount
+        or has_expense_keyword
+    ):
+        return Intent(
+            "expense",
+            0.95,
+        )
 
-    return Intent("unknown", 0.0)
+    return Intent(
+        "unknown",
+        0.0,
+    )

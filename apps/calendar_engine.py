@@ -12,6 +12,10 @@ from googleapiclient.discovery import build
 from apps.google_engine import get_google_credentials
 from config import GOOGLE_CALENDAR_ID
 from utils.time import SINGAPORE_TZ, sg_now
+from apps.calendar_parser import (
+    normalize_calendar_text,
+    parse_calendar_event,
+)
 
 
 # ==========================================================
@@ -36,25 +40,76 @@ def get_calendar_service():
 # ==========================================================
 
 def create_calendar_event(
-    title,
-    start_time,
-    end_time,
+    *,
+    title: str,
+    start_time=None,
+    end_time=None,
+    start_date=None,
+    end_date=None,
+    all_day: bool = False,
 ):
+    """
+    Create a timed or all-day Google Calendar event.
+
+    For all-day events, end_date is inclusive inside ShaunMariaOS.
+    Google Calendar requires an exclusive end date, so one day is added.
+    """
+
+    if not title.strip():
+        raise ValueError(
+            "The calendar event needs a title."
+        )
+
     service = get_calendar_service()
 
-    event_body = {
-        "summary": title,
-        "start": {
-            "dateTime": start_time.isoformat(),
-            "timeZone": "Asia/Singapore",
-        },
-        "end": {
-            "dateTime": end_time.isoformat(),
-            "timeZone": "Asia/Singapore",
-        },
-    }
+    if all_day:
+        if start_date is None or end_date is None:
+            raise ValueError(
+                "All-day events require start and end dates."
+            )
 
-    created_event = (
+        if end_date < start_date:
+            raise ValueError(
+                "The event end date cannot be before its start date."
+            )
+
+        event_body = {
+            "summary": title.strip(),
+            "start": {
+                "date": start_date.isoformat(),
+            },
+            "end": {
+                "date": (
+                    end_date
+                    + timedelta(days=1)
+                ).isoformat(),
+            },
+        }
+
+    else:
+        if start_time is None or end_time is None:
+            raise ValueError(
+                "Timed events require start and end times."
+            )
+
+        if end_time <= start_time:
+            raise ValueError(
+                "The event end time must be after its start time."
+            )
+
+        event_body = {
+            "summary": title.strip(),
+            "start": {
+                "dateTime": start_time.isoformat(),
+                "timeZone": "Asia/Singapore",
+            },
+            "end": {
+                "dateTime": end_time.isoformat(),
+                "timeZone": "Asia/Singapore",
+            },
+        }
+
+    return (
         service.events()
         .insert(
             calendarId=GOOGLE_CALENDAR_ID,
@@ -62,9 +117,6 @@ def create_calendar_event(
         )
         .execute()
     )
-
-    return created_event
-
 
 # ==========================================================
 # Natural Language Parsing
