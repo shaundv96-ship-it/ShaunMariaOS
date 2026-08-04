@@ -4,18 +4,14 @@ ShaunMariaOS
 Calendar Engine
 """
 
-import re
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, timedelta
 
 from googleapiclient.discovery import build
 
 from apps.google_engine import get_google_credentials
 from config import GOOGLE_CALENDAR_ID
 from utils.time import SINGAPORE_TZ, sg_now
-from apps.calendar_parser import (
-    normalize_calendar_text,
-    parse_calendar_event,
-)
+from apps.calendar_parser import normalize_calendar_text
 
 
 # ==========================================================
@@ -122,288 +118,6 @@ def create_calendar_event(
 # Natural Language Parsing
 # ==========================================================
 
-WEEKDAYS = {
-    "monday": 0,
-    "tuesday": 1,
-    "wednesday": 2,
-    "thursday": 3,
-    "friday": 4,
-    "saturday": 5,
-    "sunday": 6,
-}
-
-MONTHS = {
-    "january": 1,
-    "february": 2,
-    "march": 3,
-    "april": 4,
-    "may": 5,
-    "june": 6,
-    "july": 7,
-    "august": 8,
-    "september": 9,
-    "october": 10,
-    "november": 11,
-    "december": 12,
-}
-
-
-def parse_calendar_time(text: str):
-    """Parse a calendar time from natural-language text."""
-
-    # 12-hour format:
-    # 7pm, 7 pm, 7:30pm, at 7pm
-    match = re.search(
-        r"\b(?:at\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)\b",
-        text,
-        re.IGNORECASE,
-    )
-
-    if match:
-        hour = int(match.group(1))
-        minute = int(match.group(2) or 0)
-        ampm = match.group(3).lower()
-
-        if hour < 1 or hour > 12:
-            return None
-
-        if minute > 59:
-            return None
-
-        if ampm == "pm" and hour != 12:
-            hour += 12
-
-        if ampm == "am" and hour == 12:
-            hour = 0
-
-        return time(
-            hour=hour,
-            minute=minute,
-        )
-
-    # 24-hour format:
-    # 19:00, 08:30
-    match = re.search(
-        r"\b([01]?\d|2[0-3]):([0-5]\d)\b",
-        text,
-        re.IGNORECASE,
-    )
-
-    if match:
-        return time(
-            hour=int(match.group(1)),
-            minute=int(match.group(2)),
-        )
-
-    return None
-
-def parse_calendar_date(text: str):
-
-    today = sg_now().date()
-    lowered = text.lower()
-
-    if "today" in lowered:
-        return today
-
-    if "tomorrow" in lowered:
-        return today + timedelta(days=1)
-
-    weekday_match = re.search(
-        r"(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)",
-        lowered,
-    )
-
-    if weekday_match:
-
-        weekday = WEEKDAYS[weekday_match.group(2)]
-
-        delta = (weekday - today.weekday()) % 7
-
-        if delta == 0:
-            delta = 7
-
-        if weekday_match.group(1):
-            delta += 7
-
-        return today + timedelta(days=delta)
-
-    month_pattern = (
-        r"(\d{1,2})\s+"
-        r"(january|february|march|april|may|june|"
-        r"july|august|september|october|november|december)"
-        r"(?:\s+(\d{4}))?"
-    )
-
-    month_match = re.search(
-        month_pattern,
-        lowered,
-    )
-
-    if month_match:
-
-        day = int(month_match.group(1))
-        month = MONTHS[month_match.group(2)]
-        year = int(month_match.group(3) or today.year)
-
-        date = datetime(
-            year,
-            month,
-            day,
-        ).date()
-
-        if not month_match.group(3):
-
-            if date < today:
-                date = date.replace(
-                    year=year + 1,
-                )
-
-        return date
-
-    return None
-
-
-def clean_calendar_title(text: str):
-
-    title = text
-
-    patterns = [
-
-        r"\btoday\b",
-        r"\btomorrow\b",
-
-        r"\bnext\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
-
-        r"\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
-
-        r"\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)(?:\s+\d{4})?",
-
-        r"\bat\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?",
-
-        r"\d{1,2}(?::\d{2})?\s*(?:am|pm)",
-    ]
-
-    for pattern in patterns:
-
-        title = re.sub(
-            pattern,
-            "",
-            title,
-            flags=re.IGNORECASE,
-        )
-
-    title = re.sub(
-        r"\s+",
-        " ",
-        title,
-    ).strip(" ,.-")
-
-    if not title:
-        return "Untitled Event"
-
-    return title[0].upper() + title[1:]
-
-
-def parse_calendar_event(text: str):
-    normalized_text = normalize_calendar_text(text)
-
-    event_date = parse_calendar_date(normalized_text)
-    event_time = parse_calendar_time(normalized_text)
-
-    if event_date is None or event_time is None:
-        return None
-
-    title = clean_calendar_title(normalized_text)
-
-    start_time = datetime.combine(
-        event_date,
-        event_time,
-    )
-
-    end_time = start_time + timedelta(hours=1)
-
-    return {
-        "title": title,
-        "start_time": start_time,
-        "end_time": end_time,
-    }
-
-def normalize_calendar_text(text: str) -> str:
-    """
-    Normalise common calendar shorthand and ordinal dates.
-
-    Examples:
-    tmrw -> tomorrow
-    fri -> friday
-    sept -> september
-    3rd -> 3
-    """
-
-    normalized = text.lower().strip()
-
-    # Convert ordinal dates:
-    # 1st, 2nd, 3rd, 4th -> 1, 2, 3, 4
-    normalized = re.sub(
-        r"\b(\d{1,2})(st|nd|rd|th)\b",
-        r"\1",
-        normalized,
-        flags=re.IGNORECASE,
-    )
-
-    replacements = {
-        # Relative dates
-        "tdy": "today",
-        "tmr": "tomorrow",
-        "tmrw": "tomorrow",
-        "2moro": "tomorrow",
-
-        # Weekdays
-        "mon": "monday",
-        "tue": "tuesday",
-        "tues": "tuesday",
-        "wed": "wednesday",
-        "thu": "thursday",
-        "thur": "thursday",
-        "thurs": "thursday",
-        "fri": "friday",
-        "sat": "saturday",
-        "sun": "sunday",
-
-        # Months
-        "jan": "january",
-        "feb": "february",
-        "mar": "march",
-        "apr": "april",
-        "jun": "june",
-        "jul": "july",
-        "aug": "august",
-        "sep": "september",
-        "sept": "september",
-        "oct": "october",
-        "nov": "november",
-        "dec": "december",
-    }
-
-    pattern = re.compile(
-        r"\b("
-        + "|".join(
-            re.escape(key)
-            for key in sorted(
-                replacements,
-                key=len,
-                reverse=True,
-            )
-        )
-        + r")\b",
-        flags=re.IGNORECASE,
-    )
-
-    normalized = pattern.sub(
-        lambda match: replacements[match.group(0).lower()],
-        normalized,
-    )
-
-    return re.sub(r"\s+", " ", normalized).strip()
 # ==========================================================
 # Existing Dashboard Functions
 # ==========================================================
@@ -665,3 +379,115 @@ def format_calendar_event(event: dict) -> str:
     ).lstrip("0")
 
     return f"• {time_label} — {title}"
+
+# ==========================================================
+# Event Search and Deletion
+# ==========================================================
+
+def search_upcoming_calendar_events(
+    search_text: str,
+    *,
+    max_results: int = 10,
+) -> list[dict]:
+    """
+    Search upcoming Calendar events by title.
+
+    Results are limited to approximately the next year.
+    """
+
+    query = search_text.strip()
+
+    if not query:
+        return []
+
+    service = get_calendar_service()
+    now = sg_now()
+    search_end = now + timedelta(days=365)
+
+    result = (
+        service.events()
+        .list(
+            calendarId=GOOGLE_CALENDAR_ID,
+            timeMin=now.isoformat(),
+            timeMax=search_end.isoformat(),
+            q=query,
+            singleEvents=True,
+            orderBy="startTime",
+            maxResults=max_results,
+        )
+        .execute()
+    )
+
+    events = result.get("items", [])
+    normalized_query = query.casefold()
+
+    return [
+        event
+        for event in events
+        if normalized_query
+        in event.get(
+            "summary",
+            "",
+        ).casefold()
+    ]
+
+
+def delete_calendar_event(
+    event_id: str,
+) -> None:
+    """Delete one Google Calendar event."""
+
+    if not event_id.strip():
+        raise ValueError(
+            "A Calendar event ID is required."
+        )
+
+    service = get_calendar_service()
+
+    (
+        service.events()
+        .delete(
+            calendarId=GOOGLE_CALENDAR_ID,
+            eventId=event_id,
+        )
+        .execute()
+    )
+
+
+def get_event_date_label(
+    event: dict,
+) -> str:
+    """Return a readable event date and time."""
+
+    start_data = event.get("start", {})
+    date_time_text = start_data.get("dateTime")
+    date_text = start_data.get("date")
+
+    if date_time_text:
+        event_time = datetime.fromisoformat(
+            date_time_text.replace(
+                "Z",
+                "+00:00",
+            )
+        ).astimezone(SINGAPORE_TZ)
+
+        return event_time.strftime(
+            "%d %B %Y, %I:%M %p"
+        ).replace(
+            " 0",
+            " ",
+        )
+
+    if date_text:
+        event_date = datetime.fromisoformat(
+            date_text
+        ).date()
+
+        return (
+            event_date.strftime(
+                "%d %B %Y"
+            )
+            + " — All day"
+        )
+
+    return "Date unavailable"

@@ -68,8 +68,6 @@ from utils.logger import logger
 from utils.startup import startup_banner
 from utils.time import sg_now
 
-from handlers.expense_handler import handle_expense
-from handlers.income_handler import handle_income
 from handlers.task_handler import handle_task
 from handlers.unknown_handler import handle_unknown
 from handlers.wedding_handler import handle_wedding
@@ -83,6 +81,9 @@ from handlers.wedding_contribution_handler import (
 from handlers.calendar_handler import handle_calendar
 from handlers.calendar_query_handler import (
     handle_calendar_query,
+)
+from handlers.calendar_delete_handler import (
+    handle_calendar_delete,
 )
 
 async def reply_with_main_keyboard(update: Update, message: str) -> None:
@@ -456,6 +457,7 @@ async def text_button_handler(
     intent_handlers = {
     "wedding_contribution": handle_wedding_contribution,
     "calendar_query": handle_calendar_query,
+    "calendar_delete": handle_calendar_delete,
     "calendar": handle_calendar,
     "expense": handle_expense,
     "income": handle_income,
