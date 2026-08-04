@@ -4,13 +4,17 @@ ShaunMariaOS
 Income Handler
 """
 
+from html import escape
+
 from telegram import Update
 
 from apps.income_engine import (
     parse_income,
     save_income,
 )
+from apps.menu_keyboard import get_persistent_main_keyboard
 from apps.user_engine import get_user_profile
+from utils.logger import logger
 
 
 async def handle_income(
@@ -26,7 +30,14 @@ async def handle_income(
 
     if income is None:
         await update.message.reply_text(
-            "❌ Unable to understand the income amount.",
+            (
+                "❌ <b>Income Not Updated</b>\n\n"
+                "Please include a valid amount.\n\n"
+                "Example:\n"
+                "<code>Salary 3013.80</code>"
+            ),
+            parse_mode="HTML",
+            reply_markup=get_persistent_main_keyboard(),
         )
         return
 
@@ -37,6 +48,7 @@ async def handle_income(
     if profile["owner"] == "Unknown":
         await update.message.reply_text(
             "❌ This Telegram user is not registered.",
+            reply_markup=get_persistent_main_keyboard(),
         )
         return
 
@@ -44,21 +56,36 @@ async def handle_income(
     income.item = profile["salary_item"]
 
     try:
-        save_income(income)
+        result = save_income(income)
+        finance = result["finance"]
 
         await update.message.reply_text(
             (
                 "💰 <b>Income Updated</b>\n\n"
-                f"👤 <b>Owner</b>\n{income.owner}\n\n"
-                f"💵 <b>Item</b>\n{income.item}\n\n"
+                f"👤 <b>Owner</b>\n"
+                f"{escape(income.owner)}\n\n"
+                f"💵 <b>Item</b>\n"
+                f"{escape(income.item)}\n\n"
                 f"💲 <b>Amount</b>\n"
                 f"${income.amount:,.2f}\n\n"
-                "📊 Finance sheet updated."
+                f"🏦 <b>Available Money</b>\n"
+                f"${finance['available']:,.2f}\n\n"
+                "📊 MoneyOS is now up to date."
             ),
             parse_mode="HTML",
+            reply_markup=get_persistent_main_keyboard(),
         )
 
     except Exception as error:
+        logger.exception(
+            "Failed to update income."
+        )
+
         await update.message.reply_text(
-            f"❌ {error}"
+            (
+                "❌ <b>Income Not Updated</b>\n\n"
+                f"{escape(str(error))}"
+            ),
+            parse_mode="HTML",
+            reply_markup=get_persistent_main_keyboard(),
         )

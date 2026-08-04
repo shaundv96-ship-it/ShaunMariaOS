@@ -198,10 +198,30 @@ def get_guest_summary() -> dict:
 # Finance
 # ====================================================
 
-def get_finance_summary() -> dict:
-    """Return the active monthly finance summary."""
+def get_finance_summary(
+    *,
+    force_refresh: bool = False,
+) -> dict:
+    """
+    Return the current Finance-sheet summary.
 
-    rows = get_finance_sheet()
+    Status meanings:
+        Income:
+            Paid = received and available
+
+        Savings:
+            Allocated or Paid = committed
+
+        Bills:
+            Allocated or Paid = committed
+
+        Insurance:
+            Allocated or Paid = committed
+    """
+
+    rows = get_finance_sheet(
+        force_refresh=force_refresh,
+    )
 
     income = 0.0
     savings = 0.0
@@ -212,25 +232,36 @@ def get_finance_summary() -> dict:
         if len(row) < 9:
             continue
 
-        category = str(row[1]).strip()
+        category = str(row[1]).strip().casefold()
         amount = number(row[4])
-        status = str(row[8]).strip().lower()
+        status = str(row[8]).strip().casefold()
 
-        if status != "active":
+        if amount <= 0:
             continue
 
-        match category:
-            case "Income":
-                income += amount
+        if (
+            category == "income"
+            and status == "paid"
+        ):
+            income += amount
 
-            case "Savings":
-                savings += amount
+        elif (
+            category == "savings"
+            and status in {"allocated", "paid"}
+        ):
+            savings += amount
 
-            case "Bills":
-                bills += amount
+        elif (
+            category == "bills"
+            and status in {"allocated", "paid"}
+        ):
+            bills += amount
 
-            case "Insurance":
-                insurance += amount
+        elif (
+            category == "insurance"
+            and status in {"allocated", "paid"}
+        ):
+            insurance += amount
 
     commitments = (
         savings
@@ -243,18 +274,15 @@ def get_finance_summary() -> dict:
         - commitments
     )
 
-    health = finance_status(
-        available
-    )
-
     return {
         "salary": income,
+        "income": income,
         "savings": savings,
         "bills": bills,
         "insurance": insurance,
         "commitments": commitments,
         "available": available,
-        "health": health,
+        "health": finance_status(available),
     }
 
 
@@ -284,8 +312,8 @@ def get_bills_summary() -> dict:
         status = str(row[8]).strip().lower()
 
         if (
-            category != "Bills"
-            or status != "active"
+            category.casefold() != "bills"
+            or status not in {"allocated", "paid"}
         ):
             continue
 
@@ -339,7 +367,8 @@ def get_insurance_summary() -> dict:
 
         status = str(row[8]).strip()
         is_active = (
-            status.lower() == "active"
+            status.casefold()
+            in {"allocated", "paid"}
         )
 
         amount = number(row[4])

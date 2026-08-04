@@ -24,9 +24,24 @@ def detect_intent(text: str) -> Intent:
     text = text.lower().strip()
     normalized_text = normalize_calendar_text(text)
 
-    # -------------------------
+       # -------------------------
     # Wedding Contribution
     # -------------------------
+
+    short_wedding_contribution = bool(
+        re.fullmatch(
+            r"wedding\s+\$?\s*"
+            r"\d[\d,]*(?:\.\d{1,2})?",
+            text,
+            re.IGNORECASE,
+        )
+    )
+
+    if short_wedding_contribution:
+        return Intent(
+            "wedding_contribution",
+            1.0,
+        )
 
     wedding_contribution_patterns = (
         r"\bwedding\s+fund\b",

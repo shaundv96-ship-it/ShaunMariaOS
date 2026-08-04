@@ -114,8 +114,14 @@ def get_honeymoon_sheet():
 # Finance Sheets
 # ====================================================
 
-def get_finance_sheet():
-    return get_worksheet_values(FINANCE_SHEET)
+def get_finance_sheet(
+    *,
+    force_refresh: bool = False,
+    ):
+    return get_worksheet_values(
+        FINANCE_SHEET,
+        force_refresh=force_refresh,
+    )
 def get_expense_log_sheet():
     return get_worksheet_values(EXPENSE_LOG_SHEET)
 

@@ -2,188 +2,156 @@
 ShaunMariaOS
 
 Money Engine
-Handles all financial calculations.
+Handles all MoneyOS calculations.
 """
 
-from apps.database_engine import (
-    get_finance_sheet,
-    get_expense_log_sheet,
+from utils.sheet_parser import (
+    get_expense_summary,
+    get_finance_summary,
 )
 
-# ==========================================
-# Finance Sheet Columns
-# ==========================================
 
-CATEGORY_COL = 1
-ITEM_COL = 2
-OWNER_COL = 3
-AMOUNT_COL = 4
-STATUS_COL = 8
+# ==========================================================
+# Money Summary
+# ==========================================================
 
-# ==========================================
-# Expense Log Columns
-# ==========================================
-
-EXPENSE_DATE_COL = 0
-EXPENSE_TIME_COL = 1
-EXPENSE_OWNER_COL = 2
-EXPENSE_CATEGORY_COL = 3
-EXPENSE_ITEM_COL = 4
-EXPENSE_AMOUNT_COL = 5
-EXPENSE_PAYMENT_METHOD_COL = 6
-EXPENSE_NOTES_COL = 7
-EXPENSE_STATUS_COL = 8
-
-
-def get_total_income() -> float:
-    """
-    Return total income received.
-    Only rows marked as Paid are counted.
-    """
-
-    rows = get_finance_sheet()
-
-    total = 0.0
-
-    for row in rows[1:]:
-
-        if len(row) <= STATUS_COL:
-            continue
-
-        category = str(row[CATEGORY_COL]).strip().lower()
-        status = str(row[STATUS_COL]).strip().lower()
-
-        if category != "income":
-            continue
-
-        if status != "paid":
-            continue
-
-        try:
-            total += float(row[AMOUNT_COL])
-        except (ValueError, TypeError):
-            continue
-
-    return total
-
-
-def get_total_expenses() -> float:
-    """
-    Return total valid expenses logged.
-    """
-
-    rows = get_expense_log_sheet()
-    total = 0.0
-
-    for row in rows[1:]:
-
-        if len(row) <= EXPENSE_STATUS_COL:
-            continue
-
-        status = str(row[EXPENSE_STATUS_COL]).strip().lower()
-
-        if status not in {"active", "paid", "completed"}:
-            continue
-
-        try:
-            total += float(row[EXPENSE_AMOUNT_COL])
-        except (ValueError, TypeError):
-            continue
-
-    return total
-
-def get_monthly_cash_flow() -> float:
-    """
-    Return income received minus expenses logged.
-
-    This represents monthly cash flow, not the user's
-    actual bank-account balance.
-    """
-
-    return get_total_income() - get_total_expenses()
-
-
-
-
-def get_allocated_money() -> float:
-    """
-    Return money that has already been set aside.
-
-    Only non-income Finance rows marked as Allocated
-    are counted.
-    """
-
-    rows = get_finance_sheet()
-    total = 0.0
-
-    for row in rows[1:]:
-
-        if len(row) <= STATUS_COL:
-            continue
-
-        category = str(row[CATEGORY_COL]).strip().lower()
-        status = str(row[STATUS_COL]).strip().lower()
-
-        if category == "income":
-            continue
-
-        if status != "allocated":
-            continue
-
-        try:
-            total += float(row[AMOUNT_COL])
-        except (ValueError, TypeError):
-            continue
-
-    return total
-
-def get_available_money() -> float:
-    """
-    Return this month's currently available money.
-
-    Income received
-    minus expenses logged
-    minus money already allocated.
-    """
-
-    return (
-        get_total_income()
-        - get_total_expenses()
-        - get_allocated_money()
-    )
-
-def get_money_summary() -> dict:
+def get_money_summary(
+    *,
+    force_refresh: bool = False,
+) -> dict:
     """
     Return the current MoneyOS summary.
+
+    Calculations:
+        Monthly cash flow:
+            Income received - expenses logged
+
+        Available money:
+            Income received
+            - expenses logged
+            - allocated commitments
     """
 
-    income = get_total_income()
-    expenses = get_total_expenses()
-    allocated = get_allocated_money()
+    finance = get_finance_summary(
+        force_refresh=force_refresh,
+    )
 
-    monthly_cash_flow = income - expenses
-    available_money = monthly_cash_flow - allocated
+    expenses = get_expense_summary()
+
+    income = float(
+        finance.get("income", 0.0)
+    )
+
+    expense_total = float(
+        expenses.get("total", 0.0)
+    )
+
+    allocated = float(
+        finance.get("commitments", 0.0)
+    )
+
+    monthly_cash_flow = (
+        income
+        - expense_total
+    )
+
+    available_money = (
+        monthly_cash_flow
+        - allocated
+    )
 
     return {
         "income": income,
-        "expenses": expenses,
+        "expenses": expense_total,
         "allocated": allocated,
         "monthly_cash_flow": monthly_cash_flow,
         "available_money": available_money,
+
+        # Useful breakdowns for other modules
+        "savings": float(
+            finance.get("savings", 0.0)
+        ),
+        "bills": float(
+            finance.get("bills", 0.0)
+        ),
+        "insurance": float(
+            finance.get("insurance", 0.0)
+        ),
+        "health": finance.get(
+            "health",
+            "",
+        ),
     }
 
-if __name__ == "__main__":
-    print(get_money_summary())
+
+# ==========================================================
+# Individual Values
+# ==========================================================
+
+def get_total_income(
+    *,
+    force_refresh: bool = False,
+) -> float:
+    """Return all income marked as received."""
+
+    return get_money_summary(
+        force_refresh=force_refresh,
+    )["income"]
+
+
+def get_total_expenses() -> float:
+    """Return this month's recorded expenses."""
+
+    return get_money_summary()["expenses"]
+
+
+def get_allocated_money(
+    *,
+    force_refresh: bool = False,
+) -> float:
+    """Return money committed to savings, bills and insurance."""
+
+    return get_money_summary(
+        force_refresh=force_refresh,
+    )["allocated"]
+
+
+def get_monthly_cash_flow(
+    *,
+    force_refresh: bool = False,
+) -> float:
+    """Return income received minus recorded expenses."""
+
+    return get_money_summary(
+        force_refresh=force_refresh,
+    )["monthly_cash_flow"]
+
+
+def get_available_money(
+    *,
+    force_refresh: bool = False,
+) -> float:
+    """
+    Return income minus expenses and allocated commitments.
+    """
+
+    return get_money_summary(
+        force_refresh=force_refresh,
+    )["available_money"]
+
+
+# ==========================================================
+# Money Dashboard
+# ==========================================================
 
 def get_money_dashboard() -> str:
-    """
-    Return the main MoneyOS dashboard.
-    """
+    """Return the main MoneyOS dashboard."""
 
-    summary = get_money_summary()
+    summary = get_money_summary(
+        force_refresh=True,
+    )
 
-    return f"""
-💰 <b>MoneyOS</b>
+    return f"""💰 <b>MoneyOS</b>
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -203,4 +171,26 @@ ${summary["available_money"]:,.2f}
 
 📈 <b>Monthly Cash Flow</b>
 ${summary["monthly_cash_flow"]:,.2f}
+
+━━━━━━━━━━━━━━━━━━
+
+🏦 <b>Allocation Breakdown</b>
+
+Savings: ${summary["savings"]:,.2f}
+Bills: ${summary["bills"]:,.2f}
+Insurance: ${summary["insurance"]:,.2f}
 """
+
+
+# ==========================================================
+# Local Test
+# ==========================================================
+
+if __name__ == "__main__":
+    from pprint import pprint
+
+    pprint(
+        get_money_summary(
+            force_refresh=True,
+        )
+    )

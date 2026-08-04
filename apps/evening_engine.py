@@ -107,16 +107,23 @@ def build_wedding_section(wedding):
 def build_closing_section(
     today,
     tomorrow_events,
+    finance,
 ):
     """Return a context-aware nightly closing."""
 
     last_day_of_month = monthrange(
         today.year,
         today.month,
-    )[1]
+        )[1]
 
     is_payday_today = today.day == last_day_of_month
     is_payday_tomorrow = today.day + 1 == last_day_of_month
+
+    income = float(
+        finance.get("income", 0.0)
+        or finance.get("salary", 0.0)
+        or 0.0
+    )
 
     if is_payday_tomorrow:
         return (
@@ -124,10 +131,16 @@ def build_closing_section(
             "Remember to record your salary once it comes in."
         )
 
+    if is_payday_today and income > 0:
+        return (
+            "Today is payday.\n\n"
+            "Your salary has been recorded and MoneyOS is up to date."
+        )
+
     if is_payday_today:
         return (
             "Today is payday.\n\n"
-            "Once your salary is recorded, MoneyOS will update automatically."
+            "Remember to record your salary once it comes in."
         )
 
     if not tomorrow_events:
@@ -151,10 +164,12 @@ def get_evening_wrap():
     """Build the nightly Evening Wrap."""
 
     life = get_life_snapshot()
+    reflection = get_reflection(life)
 
     finance = life["finance"]
     wedding = life["wedding"]
     today = life["generated_at"].date()
+    
 
     tomorrow_events = get_tomorrow_events()
 
@@ -168,13 +183,16 @@ def get_evening_wrap():
     closing_text = build_closing_section(
         today,
         tomorrow_events,
+        finance,
     )
 
     return f"""🌙 <b>Evening Wrap</b>
 
 Good evening, Shaun & Maria.
 
-Another day done.
+✨ Reflection
+
+{reflection}
 
 {DIVIDER}
 

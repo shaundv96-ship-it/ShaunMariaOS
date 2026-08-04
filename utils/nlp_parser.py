@@ -83,6 +83,7 @@ def detect_wedding_contribution(message: str):
     )
 
     patterns = [
+        r"^\s*wedding\s+\$?\s*([\d,]+(?:\.\d{1,2})?)\s*$",
         rf"wedding fund\s+{amount_pattern}",
         rf"wedding savings\s+{amount_pattern}",
         rf"add\s+{amount_pattern}\s+to wedding(?: fund| savings)?",
