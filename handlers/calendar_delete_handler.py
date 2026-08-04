@@ -10,9 +10,10 @@ from html import escape
 from telegram import Update
 
 from apps.calendar_engine import (
-    delete_calendar_event,
+    delete_calendar_series,
     get_event_date_label,
-    search_upcoming_calendar_events,
+    is_recurring_calendar_event,
+    search_calendar_series,
 )
 from apps.menu_keyboard import get_persistent_main_keyboard
 from utils.logger import logger
@@ -30,14 +31,16 @@ def parse_calendar_delete_query(
         flags=re.IGNORECASE,
     )
 
-    return query.strip(" .")
+    return query.strip(
+        " ."
+    )
 
 
 async def handle_calendar_delete(
     update: Update,
     text: str,
 ) -> None:
-    """Find and safely delete a Calendar event."""
+    """Find and safely delete one Calendar event or series."""
 
     if not update.message:
         return
@@ -60,7 +63,7 @@ async def handle_calendar_delete(
         return
 
     try:
-        events = search_upcoming_calendar_events(
+        events = search_calendar_series(
             search_text
         )
 
@@ -68,7 +71,7 @@ async def handle_calendar_delete(
             await update.message.reply_text(
                 (
                     "🔎 <b>Event Not Found</b>\n\n"
-                    f"I couldn't find an upcoming event matching "
+                    "I couldn't find an upcoming event matching "
                     f"<b>{escape(search_text)}</b>."
                 ),
                 parse_mode="HTML",
@@ -92,12 +95,21 @@ async def handle_calendar_delete(
                 )
 
                 date_label = escape(
-                    get_event_date_label(event)
+                    get_event_date_label(
+                        event
+                    )
+                )
+
+                recurrence_label = (
+                    " — Recurring"
+                    if is_recurring_calendar_event(event)
+                    else ""
                 )
 
                 lines.append(
                     f"\n• <b>{title}</b>"
                     f"\n  {date_label}"
+                    f"{recurrence_label}"
                 )
 
             lines.extend(
@@ -115,6 +127,7 @@ async def handle_calendar_delete(
             return
 
         event = events[0]
+
         title = event.get(
             "summary",
             "Untitled Event",
@@ -124,16 +137,33 @@ async def handle_calendar_delete(
             event
         )
 
-        delete_calendar_event(
-            event["id"]
+        is_recurring = is_recurring_calendar_event(
+            event
         )
 
+        delete_calendar_series(
+            event
+        )
+
+        heading = (
+            "🗑️ <b>Recurring Event Series Deleted</b>"
+            if is_recurring
+            else "🗑️ <b>Calendar Event Deleted</b>"
+        )
+
+        message = (
+            f"{heading}\n\n"
+            f"📌 <b>{escape(title)}</b>\n"
+            f"📅 {escape(date_label)}"
+        )
+
+        if is_recurring:
+            message += (
+                "\n🔁 All future occurrences were removed."
+            )
+
         await update.message.reply_text(
-            (
-                "🗑️ <b>Calendar Event Deleted</b>\n\n"
-                f"📌 <b>{escape(title)}</b>\n"
-                f"📅 {escape(date_label)}"
-            ),
+            message,
             parse_mode="HTML",
             reply_markup=get_persistent_main_keyboard(),
         )

@@ -63,7 +63,25 @@ async def handle_calendar(
     if not update.message:
         return
 
-    parsed_event = parse_calendar_event(text)
+    parsed_event = parse_calendar_event(
+        text
+    )
+    if (
+    parsed_event
+    and parsed_event.get("incomplete")
+):
+        await update.message.reply_text(
+        (
+            "📅 <b>Monthly Event Needs a Day</b>\n\n"
+            "Which day should it repeat each month?\n\n"
+            "Examples:\n"
+            "<code>Pay insurance every month on the 1st</code>\n"
+            "<code>Pay SIM bill every month on the 21st</code>"
+        ),
+        parse_mode="HTML",
+        reply_markup=get_persistent_main_keyboard(),
+    )
+    return
 
     if parsed_event is None:
         await update.message.reply_text(
@@ -73,7 +91,7 @@ async def handle_calendar(
                 "Examples:\n"
                 "<code>Dinner with Maria tmrw 7pm</code>\n"
                 "<code>JB trip Saturday to Sunday</code>\n"
-                "<code>Leave next week</code>"
+                "<code>Gym every Monday 7pm</code>"
             ),
             parse_mode="HTML",
             reply_markup=get_persistent_main_keyboard(),
@@ -83,32 +101,48 @@ async def handle_calendar(
     try:
         title = parsed_event["title"]
         all_day = parsed_event["all_day"]
+        recurrence = parsed_event.get(
+            "recurrence"
+        )
 
         if all_day:
-            start_date = parsed_event["start_date"]
-            end_date = parsed_event["end_date"]
+            start_date = parsed_event[
+                "start_date"
+            ]
+
+            end_date = parsed_event[
+                "end_date"
+            ]
 
             created_event = create_calendar_event(
                 title=title,
                 start_date=start_date,
                 end_date=end_date,
                 all_day=True,
+                recurrence=recurrence,
             )
 
             event_details = (
-                f"📅 {escape(format_all_day_dates(start_date, end_date))}\n"
+                "📅 "
+                f"{escape(format_all_day_dates(start_date, end_date))}\n"
                 "🌍 All day"
             )
 
         else:
-            start_time = parsed_event["start_time"]
-            end_time = parsed_event["end_time"]
+            start_time = parsed_event[
+                "start_time"
+            ]
+
+            end_time = parsed_event[
+                "end_time"
+            ]
 
             created_event = create_calendar_event(
                 title=title,
                 start_time=start_time,
                 end_time=end_time,
                 all_day=False,
+                recurrence=recurrence,
             )
 
             date_label = start_time.strftime(
@@ -126,14 +160,26 @@ async def handle_calendar(
                 f"🕒 {escape(time_label)}"
             )
 
-        calendar_link = created_event.get(
-            "htmlLink"
+        heading = (
+            "🔁 <b>Recurring Event Added</b>"
+            if recurrence
+            else "✅ <b>Calendar Event Added</b>"
         )
 
         message = (
-            "✅ <b>Calendar Event Added</b>\n\n"
+            f"{heading}\n\n"
             f"📌 <b>{escape(title)}</b>\n\n"
             f"{event_details}"
+        )
+
+        if recurrence:
+            message += (
+                "\n"
+                f"🔁 {escape(recurrence['label'])}"
+            )
+
+        calendar_link = created_event.get(
+            "htmlLink"
         )
 
         if calendar_link:

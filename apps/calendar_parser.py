@@ -2,12 +2,13 @@
 ShaunMariaOS
 
 Calendar Parser
-Parses timed, all-day, and multi-day calendar events.
+Parses timed, all-day, multi-day, and recurring events.
 """
 
 import re
 from datetime import date, datetime, time, timedelta
 
+from apps.calendar_recurrence import parse_recurrence
 from utils.time import SINGAPORE_TZ, sg_now
 
 
@@ -36,20 +37,6 @@ MONTHS = {
     "december": 12,
 }
 
-ALL_DAY_KEYWORDS = {
-    "trip",
-    "leave",
-    "annual leave",
-    "holiday",
-    "vacation",
-    "birthday",
-    "retreat",
-    "camp",
-    "staycation",
-    "off day",
-    "office closed",
-}
-
 SMALL_TITLE_WORDS = {
     "a",
     "an",
@@ -65,12 +52,42 @@ SMALL_TITLE_WORDS = {
     "with",
 }
 
+ACRONYMS = {
+    "ai": "AI",
+    "api": "API",
+    "bto": "BTO",
+    "cpf": "CPF",
+    "hdb": "HDB",
+    "hr": "HR",
+    "jb": "JB",
+    "kl": "KL",
+    "sg": "SG",
+    "uk": "UK",
+    "usa": "USA",
+}
+
+ALL_DAY_KEYWORDS = {
+    "annual leave",
+    "birthday",
+    "camp",
+    "holiday",
+    "leave",
+    "off day",
+    "office closed",
+    "retreat",
+    "staycation",
+    "trip",
+    "vacation",
+}
+
 
 # ==========================================================
 # Normalisation
 # ==========================================================
 
-def normalize_calendar_text(text: str) -> str:
+def normalize_calendar_text(
+    text: str,
+) -> str:
     """
     Normalise calendar shorthand and ordinal dates.
 
@@ -90,13 +107,11 @@ def normalize_calendar_text(text: str) -> str:
     )
 
     replacements = {
-        # Relative dates
         "tdy": "today",
         "tmr": "tomorrow",
         "tmrw": "tomorrow",
         "2moro": "tomorrow",
 
-        # Weekdays
         "mon": "monday",
         "tue": "tuesday",
         "tues": "tuesday",
@@ -108,7 +123,6 @@ def normalize_calendar_text(text: str) -> str:
         "sat": "saturday",
         "sun": "sunday",
 
-        # Months
         "jan": "january",
         "feb": "february",
         "mar": "march",
@@ -152,7 +166,7 @@ def normalize_calendar_text(text: str) -> str:
 
 
 # ==========================================================
-# Shared Date Helpers
+# Date Helpers
 # ==========================================================
 
 def next_weekday(
@@ -166,7 +180,8 @@ def next_weekday(
     reference = reference_date or sg_now().date()
 
     days_ahead = (
-        weekday_number - reference.weekday()
+        weekday_number
+        - reference.weekday()
     ) % 7
 
     if days_ahead == 0:
@@ -175,8 +190,9 @@ def next_weekday(
     if force_next_week:
         days_ahead += 7
 
-    return reference + timedelta(
-        days=days_ahead,
+    return (
+        reference
+        + timedelta(days=days_ahead)
     )
 
 
@@ -185,7 +201,7 @@ def build_month_date(
     month: int,
     year: int | None = None,
 ) -> date | None:
-    """Build a valid future-facing calendar date."""
+    """Build a valid future-facing date."""
 
     today = sg_now().date()
     selected_year = year or today.year
@@ -199,10 +215,13 @@ def build_month_date(
     except ValueError:
         return None
 
-    if year is None and result < today:
+    if (
+        year is None
+        and result < today
+    ):
         try:
             result = result.replace(
-                year=selected_year + 1,
+                year=result.year + 1,
             )
         except ValueError:
             return None
@@ -217,11 +236,21 @@ def build_month_date(
 def parse_calendar_time(
     text: str,
 ) -> time | None:
-    """Parse common 12-hour and 24-hour time formats."""
+    """
+    Parse common time formats.
+
+    Supported:
+        7pm
+        7:30pm
+        7.30pm
+        730pm
+        815am
+        19:00
+    """
 
     twelve_hour_match = re.search(
         r"\b(?:at\s+)?"
-        r"(\d{1,2})"
+        r"(\d{1,4})"
         r"(?:[:.](\d{2}))?"
         r"\s*(am|pm)\b",
         text,
@@ -229,30 +258,45 @@ def parse_calendar_time(
     )
 
     if twelve_hour_match:
-        hour = int(
-            twelve_hour_match.group(1)
-        )
+        raw_value = twelve_hour_match.group(1)
+        explicit_minutes = twelve_hour_match.group(2)
 
-        minute = int(
-            twelve_hour_match.group(2)
-            or 0
-        )
+        if explicit_minutes is not None:
+            hour = int(raw_value)
+            minute = int(explicit_minutes)
+
+        elif len(raw_value) <= 2:
+            hour = int(raw_value)
+            minute = 0
+
+        elif len(raw_value) in {3, 4}:
+            hour = int(raw_value[:-2])
+            minute = int(raw_value[-2:])
+
+        else:
+            return None
 
         meridiem = (
             twelve_hour_match.group(3)
             .casefold()
         )
 
-        if hour < 1 or hour > 12:
+        if not 1 <= hour <= 12:
             return None
 
-        if minute > 59:
+        if not 0 <= minute <= 59:
             return None
 
-        if meridiem == "pm" and hour != 12:
+        if (
+            meridiem == "pm"
+            and hour != 12
+        ):
             hour += 12
 
-        if meridiem == "am" and hour == 12:
+        if (
+            meridiem == "am"
+            and hour == 12
+        ):
             hour = 0
 
         return time(
@@ -287,7 +331,10 @@ def parse_calendar_date(
 ) -> date | None:
     """Parse one calendar date."""
 
-    normalized = normalize_calendar_text(text)
+    normalized = normalize_calendar_text(
+        text
+    )
+
     today = sg_now().date()
 
     if re.search(
@@ -300,7 +347,10 @@ def parse_calendar_date(
         r"\btomorrow\b",
         normalized,
     ):
-        return today + timedelta(days=1)
+        return (
+            today
+            + timedelta(days=1)
+        )
 
     weekday_match = re.search(
         r"\b(next\s+)?"
@@ -330,7 +380,9 @@ def parse_calendar_date(
 
     if month_match:
         return build_month_date(
-            day=int(month_match.group(1)),
+            day=int(
+                month_match.group(1)
+            ),
             month=MONTHS[
                 month_match.group(2)
             ],
@@ -345,25 +397,23 @@ def parse_calendar_date(
 
 
 # ==========================================================
-# Date-Range Parsing
+# Date Range Parsing
 # ==========================================================
 
 def parse_relative_date_range(
     text: str,
 ) -> tuple[date, date] | None:
-    """
-    Parse this weekend, next weekend, or next week.
+    """Parse this weekend, next weekend, or next week."""
 
-    Returned end date is inclusive.
-    """
+    normalized = normalize_calendar_text(
+        text
+    )
 
-    normalized = normalize_calendar_text(text)
     today = sg_now().date()
 
     if "this weekend" in normalized:
         days_until_saturday = (
-            WEEKDAYS["saturday"]
-            - today.weekday()
+            5 - today.weekday()
         ) % 7
 
         start_date = (
@@ -380,8 +430,7 @@ def parse_relative_date_range(
 
     if "next weekend" in normalized:
         days_until_saturday = (
-            WEEKDAYS["saturday"]
-            - today.weekday()
+            5 - today.weekday()
         ) % 7
 
         start_date = (
@@ -398,8 +447,7 @@ def parse_relative_date_range(
 
     if "next week" in normalized:
         days_until_monday = (
-            WEEKDAYS["monday"]
-            - today.weekday()
+            0 - today.weekday()
         ) % 7
 
         if days_until_monday == 0:
@@ -423,16 +471,11 @@ def parse_relative_date_range(
 def parse_weekday_date_range(
     text: str,
 ) -> tuple[date, date] | None:
-    """
-    Parse weekday ranges.
+    """Parse ranges such as Friday to Sunday."""
 
-    Examples:
-        Saturday to Sunday
-        Fri-Sun
-        next Monday to Wednesday
-    """
-
-    normalized = normalize_calendar_text(text)
+    normalized = normalize_calendar_text(
+        text
+    )
 
     match = re.search(
         r"\b(next\s+)?"
@@ -449,7 +492,9 @@ def parse_weekday_date_range(
         return None
 
     start_date = next_weekday(
-        WEEKDAYS[match.group(2)],
+        WEEKDAYS[
+            match.group(2)
+        ],
         force_next_week=bool(
             match.group(1)
         ),
@@ -470,41 +515,41 @@ def parse_weekday_date_range(
     if match.group(3):
         days_to_end += 7
 
-    end_date = (
-        start_date
-        + timedelta(days=days_to_end)
+    return (
+        start_date,
+        start_date + timedelta(
+            days=days_to_end,
+        ),
     )
-
-    return start_date, end_date
 
 
 def parse_numbered_date_range(
     text: str,
 ) -> tuple[date, date] | None:
     """
-    Parse numbered month ranges.
+    Parse numbered ranges.
 
     Examples:
         3-5 Aug
         3 Aug to 5 Aug
         30 Aug to 2 Sept
-        12 Sept to 15 Sept 2026
     """
 
-    normalized = normalize_calendar_text(text)
+    normalized = normalize_calendar_text(
+        text
+    )
 
-    # Both dates include their own month.
-    full_range_match = re.search(
-        r"\b(\d{1,2})\s+"
+    month_pattern = (
         r"(january|february|march|april|may|"
         r"june|july|august|september|october|"
         r"november|december)"
+    )
+
+    full_range_match = re.search(
+        rf"\b(\d{{1,2}})\s+{month_pattern}"
         r"(?:\s+(\d{4}))?"
         r"\s*(?:to|until|through|-)\s*"
-        r"(\d{1,2})\s+"
-        r"(january|february|march|april|may|"
-        r"june|july|august|september|october|"
-        r"november|december)"
+        rf"(\d{{1,2}})\s+{month_pattern}"
         r"(?:\s+(\d{4}))?\b",
         normalized,
     )
@@ -555,14 +600,10 @@ def parse_numbered_date_range(
 
         return start_date, end_date
 
-    # One shared month: 3-5 Aug.
     shared_month_match = re.search(
-        r"\b(\d{1,2})"
+        rf"\b(\d{{1,2}})"
         r"\s*(?:to|until|through|-)\s*"
-        r"(\d{1,2})\s+"
-        r"(january|february|march|april|may|"
-        r"june|july|august|september|october|"
-        r"november|december)"
+        rf"(\d{{1,2}})\s+{month_pattern}"
         r"(?:\s+(\d{4}))?\b",
         normalized,
     )
@@ -570,39 +611,41 @@ def parse_numbered_date_range(
     if not shared_month_match:
         return None
 
-    year = (
-        int(shared_month_match.group(4))
-        if shared_month_match.group(4)
-        else None
+    start_day = int(
+        shared_month_match.group(1)
+    )
+
+    end_day = int(
+        shared_month_match.group(2)
     )
 
     month = MONTHS[
         shared_month_match.group(3)
     ]
 
+    year = (
+        int(shared_month_match.group(4))
+        if shared_month_match.group(4)
+        else None
+    )
+
     start_date = build_month_date(
-        day=int(
-            shared_month_match.group(1)
-        ),
+        day=start_day,
         month=month,
         year=year,
     )
 
+    if not start_date:
+        return None
+
     end_date = build_month_date(
-        day=int(
-            shared_month_match.group(2)
-        ),
+        day=end_day,
         month=month,
-        year=(
-            start_date.year
-            if start_date
-            else year
-        ),
+        year=start_date.year,
     )
 
     if (
-        not start_date
-        or not end_date
+        not end_date
         or end_date < start_date
     ):
         return None
@@ -613,7 +656,7 @@ def parse_numbered_date_range(
 def parse_date_range(
     text: str,
 ) -> tuple[date, date] | None:
-    """Parse any supported date-range format."""
+    """Parse any supported date range."""
 
     return (
         parse_relative_date_range(text)
@@ -623,11 +666,102 @@ def parse_date_range(
 
 
 # ==========================================================
+# Recurrence Start Dates
+# ==========================================================
+
+def get_recurrence_start_date(
+    recurrence: dict | None,
+) -> date | None:
+    """Return a sensible starting date for recurrence."""
+
+    if not recurrence:
+        return None
+
+    today = sg_now().date()
+    frequency = recurrence.get("freq")
+    byday = recurrence.get("byday", "")
+
+    if frequency == "DAILY":
+        return today
+
+    if (
+        frequency == "WEEKLY"
+        and byday == "MO,TU,WE,TH,FR"
+    ):
+        start_date = today
+
+        while start_date.weekday() > 4:
+            start_date += timedelta(days=1)
+
+        return start_date
+
+    if (
+        frequency == "WEEKLY"
+        and byday == "SA,SU"
+    ):
+        days_until_saturday = (
+            5 - today.weekday()
+        ) % 7
+
+        return (
+            today
+            + timedelta(
+                days=days_until_saturday,
+            )
+        )
+
+    if (
+        frequency == "MONTHLY"
+        and recurrence.get("bymonthday")
+    ):
+        target_day = int(
+            recurrence["bymonthday"]
+        )
+
+        year = today.year
+        month = today.month
+
+        try:
+            candidate = date(
+                year,
+                month,
+                target_day,
+            )
+        except ValueError:
+            candidate = None
+
+        if (
+            candidate is not None
+            and candidate >= today
+        ):
+            return candidate
+
+        if month == 12:
+            year += 1
+            month = 1
+        else:
+            month += 1
+
+        try:
+            return date(
+                year,
+                month,
+                target_day,
+            )
+        except ValueError:
+            return None
+
+    return None
+
+
+# ==========================================================
 # Title Cleaning
 # ==========================================================
 
-def smart_title_case(text: str) -> str:
-    """Apply readable title casing while preserving small words."""
+def smart_title_case(
+    text: str,
+) -> str:
+    """Apply readable title casing."""
 
     words = text.split()
 
@@ -637,14 +771,21 @@ def smart_title_case(text: str) -> str:
     result = []
 
     for index, word in enumerate(words):
-        if (
+        lowered = word.casefold()
+
+        if lowered in ACRONYMS:
+            result.append(
+                ACRONYMS[lowered]
+            )
+
+        elif (
             index > 0
-            and word.casefold()
-            in SMALL_TITLE_WORDS
+            and lowered in SMALL_TITLE_WORDS
         ):
             result.append(
-                word.casefold()
+                lowered
             )
+
         else:
             result.append(
                 word[:1].upper()
@@ -657,13 +798,39 @@ def smart_title_case(text: str) -> str:
 def clean_calendar_title(
     text: str,
 ) -> str:
-    """Remove parsed date and time phrases from an event title."""
+    """Remove parsed date, time, and recurrence phrases."""
 
-    title = normalize_calendar_text(text)
+    title = normalize_calendar_text(
+        text
+    )
 
     patterns = (
+        # Recurrence
+        r"\bevery\s+weekday\b",
+        r"\bevery\s+weekend\b",
+        r"\bevery\s+day\b",
+        r"\bdaily\b",
+        (
+            r"\bevery\s+"
+            r"(?:monday|tuesday|wednesday|thursday|"
+            r"friday|saturday|sunday)\b"
+        ),
+        (
+            r"\bevery\s+month"
+            r"(?:\s+on)?"
+            r"(?:\s+the)?"
+            r"\s+\d{1,2}\b"
+        ),
+        r"\bevery\s+month\b",
+        r"\bmonthly\b",
+        r"\bevery\s+year\b",
+        r"\byearly\b",
+
+        # Relative ranges
         r"\b(?:this|next)\s+weekend\b",
         r"\bnext\s+week\b",
+
+        # Weekday ranges
         (
             r"\b(?:next\s+)?"
             r"(?:monday|tuesday|wednesday|thursday|"
@@ -673,6 +840,8 @@ def clean_calendar_title(
             r"(?:monday|tuesday|wednesday|thursday|"
             r"friday|saturday|sunday)\b"
         ),
+
+        # Full month ranges
         (
             r"\b\d{1,2}\s+"
             r"(?:january|february|march|april|may|"
@@ -686,6 +855,8 @@ def clean_calendar_title(
             r"november|december)"
             r"(?:\s+\d{4})?\b"
         ),
+
+        # Shared month ranges
         (
             r"\b\d{1,2}"
             r"\s*(?:to|until|through|-)\s*"
@@ -695,7 +866,11 @@ def clean_calendar_title(
             r"november|december)"
             r"(?:\s+\d{4})?\b"
         ),
+
+        # Relative single dates
         r"\b(?:today|tomorrow)\b",
+
+        # Weekdays
         (
             r"\bnext\s+"
             r"(?:monday|tuesday|wednesday|thursday|"
@@ -705,6 +880,8 @@ def clean_calendar_title(
             r"\b(?:monday|tuesday|wednesday|thursday|"
             r"friday|saturday|sunday)\b"
         ),
+
+        # Month dates
         (
             r"\b\d{1,2}\s+"
             r"(?:january|february|march|april|may|"
@@ -712,9 +889,11 @@ def clean_calendar_title(
             r"november|december)"
             r"(?:\s+\d{4})?\b"
         ),
+
+        # Times
         (
             r"\b(?:at\s+)?"
-            r"\d{1,2}(?:[:.]\d{2})?"
+            r"\d{1,4}(?:[:.]\d{2})?"
             r"\s*(?:am|pm)\b"
         ),
         r"\b(?:[01]?\d|2[0-3]):[0-5]\d\b",
@@ -734,7 +913,9 @@ def clean_calendar_title(
         title,
     ).strip(" ,.-")
 
-    return smart_title_case(title)
+    return smart_title_case(
+        title
+    )
 
 
 # ==========================================================
@@ -744,9 +925,11 @@ def clean_calendar_title(
 def looks_like_all_day_event(
     text: str,
 ) -> bool:
-    """Return whether the message naturally suggests an all-day event."""
+    """Return whether the text implies an all-day event."""
 
-    normalized = normalize_calendar_text(text)
+    normalized = normalize_calendar_text(
+        text
+    )
 
     return any(
         keyword in normalized
@@ -758,13 +941,35 @@ def parse_calendar_event(
     text: str,
 ) -> dict | None:
     """
-    Parse a timed, all-day, or multi-day calendar event.
-
-    Multi-day events take priority over timed events.
+    Parse a timed, all-day, multi-day, or recurring event.
     """
 
-    normalized = normalize_calendar_text(text)
-    title = clean_calendar_title(normalized)
+    normalized = normalize_calendar_text(
+        text
+    )
+
+    recurrence = parse_recurrence(
+        normalized
+    )
+
+    explicit_date = parse_calendar_date(
+        normalized
+    )
+
+    if (
+        recurrence
+        and recurrence.get("needs_start_date")
+        and explicit_date is None
+    ):
+        return {
+            "incomplete": True,
+            "reason": "monthly_day_missing",
+            "recurrence": recurrence,
+        }
+
+    title = clean_calendar_title(
+        normalized
+    )
 
     date_range = parse_date_range(
         normalized
@@ -778,17 +983,24 @@ def parse_calendar_event(
             "all_day": True,
             "start_date": start_date,
             "end_date": end_date,
+            "recurrence": recurrence,
         }
 
-    event_date = parse_calendar_date(
-        normalized
-    )
+    event_date = explicit_date
+
+    if event_date is None:
+        event_date = get_recurrence_start_date(
+            recurrence
+        )
 
     event_time = parse_calendar_time(
         normalized
     )
 
-    if event_date and event_time:
+    if (
+        event_date is not None
+        and event_time is not None
+    ):
         start_time = datetime.combine(
             event_date,
             event_time,
@@ -803,18 +1015,25 @@ def parse_calendar_event(
                 start_time
                 + timedelta(hours=1)
             ),
+            "recurrence": recurrence,
         }
 
     if (
-        event_date
+        event_date is not None
         and event_time is None
-        and looks_like_all_day_event(normalized)
+        and (
+            looks_like_all_day_event(
+                normalized
+            )
+            or recurrence is not None
+        )
     ):
         return {
             "title": title,
             "all_day": True,
             "start_date": event_date,
             "end_date": event_date,
+            "recurrence": recurrence,
         }
 
     return None

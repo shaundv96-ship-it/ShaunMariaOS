@@ -4,30 +4,40 @@ ShaunMariaOS
 Calendar Update Handler
 """
 
+import re
 from datetime import date, datetime, timedelta
 from html import escape
 
 from telegram import Update
 
 from apps.calendar_engine import (
+    get_calendar_series_master,
     get_event_date_label,
-    search_upcoming_calendar_events,
-    update_calendar_event,
+    is_recurring_calendar_event,
+    search_calendar_series,
+    update_calendar_series,
 )
-from apps.calendar_update_parser import (
-    parse_calendar_update,
-)
-from apps.menu_keyboard import (
-    get_persistent_main_keyboard,
-)
+from apps.calendar_update_parser import parse_calendar_update
+from apps.menu_keyboard import get_persistent_main_keyboard
 from utils.logger import logger
 from utils.time import SINGAPORE_TZ
+
+
+WEEKDAY_RRULE_CODES = {
+    0: "MO",
+    1: "TU",
+    2: "WE",
+    3: "TH",
+    4: "FR",
+    5: "SA",
+    6: "SU",
+}
 
 
 def parse_google_datetime(
     value: str,
 ) -> datetime:
-    """Parse a Google Calendar datetime."""
+    """Parse a Google Calendar datetime into Singapore time."""
 
     return datetime.fromisoformat(
         value.replace(
@@ -43,17 +53,14 @@ def build_timed_update(
     event: dict,
     parsed_update: dict,
 ) -> dict:
-    """Build start/end changes for a timed event."""
-
-    start_text = event["start"]["dateTime"]
-    end_text = event["end"]["dateTime"]
+    """Build start and end changes for a timed event."""
 
     current_start = parse_google_datetime(
-        start_text
+        event["start"]["dateTime"]
     )
 
     current_end = parse_google_datetime(
-        end_text
+        event["end"]["dateTime"]
     )
 
     duration = (
@@ -101,7 +108,7 @@ def build_all_day_update(
     """
     Build date changes for an all-day event.
 
-    Google Calendar stores all-day end dates exclusively.
+    Google Calendar stores the end date exclusively.
     """
 
     current_start = date.fromisoformat(
@@ -158,21 +165,65 @@ def build_all_day_update(
     }
 
 
-def build_updated_date_label(
+def update_weekly_recurrence_day(
     event: dict,
-) -> str:
-    """Return the updated event's date label."""
+    new_date,
+) -> list[str] | None:
+    """
+    Update BYDAY for a simple weekly recurring event.
 
-    return get_event_date_label(
-        event
+    Complex rules such as every weekday or every weekend
+    are intentionally left unchanged.
+    """
+
+    recurrence_rules = event.get(
+        "recurrence",
+        [],
     )
+
+    if len(recurrence_rules) != 1:
+        return None
+
+    original_rule = recurrence_rules[0]
+
+    if "FREQ=WEEKLY" not in original_rule:
+        return None
+
+    byday_match = re.search(
+        r"BYDAY=([^;]+)",
+        original_rule,
+    )
+
+    if not byday_match:
+        return None
+
+    current_days = byday_match.group(1).split(
+        ","
+    )
+
+    if len(current_days) != 1:
+        return None
+
+    new_code = WEEKDAY_RRULE_CODES[
+        new_date.weekday()
+    ]
+
+    updated_rule = re.sub(
+        r"BYDAY=[^;]+",
+        f"BYDAY={new_code}",
+        original_rule,
+    )
+
+    return [
+        updated_rule,
+    ]
 
 
 async def handle_calendar_update(
     update: Update,
     text: str,
 ) -> None:
-    """Find and update one Calendar event safely."""
+    """Find and safely update one Calendar event or series."""
 
     if not update.message:
         return
@@ -200,7 +251,7 @@ async def handle_calendar_update(
             "search_text"
         ]
 
-        events = search_upcoming_calendar_events(
+        events = search_calendar_series(
             search_text
         )
 
@@ -208,7 +259,7 @@ async def handle_calendar_update(
             await update.message.reply_text(
                 (
                     "🔎 <b>Event Not Found</b>\n\n"
-                    f"I couldn't find an upcoming event matching "
+                    "I couldn't find an upcoming event matching "
                     f"<b>{escape(search_text)}</b>."
                 ),
                 parse_mode="HTML",
@@ -237,9 +288,16 @@ async def handle_calendar_update(
                     )
                 )
 
+                recurrence_label = (
+                    " — Recurring"
+                    if is_recurring_calendar_event(event)
+                    else ""
+                )
+
                 lines.append(
                     f"\n• <b>{title}</b>"
                     f"\n  {date_label}"
+                    f"{recurrence_label}"
                 )
 
             lines.extend(
@@ -257,7 +315,16 @@ async def handle_calendar_update(
             return
 
         event = events[0]
-        event_id = event["id"]
+
+        is_recurring = is_recurring_calendar_event(
+            event
+        )
+
+        target_event = (
+            get_calendar_series_master(event)
+            if is_recurring
+            else event
+        )
 
         updates = {}
 
@@ -269,7 +336,7 @@ async def handle_calendar_update(
         else:
             is_all_day = (
                 "date"
-                in event.get(
+                in target_event.get(
                     "start",
                     {},
                 )
@@ -283,8 +350,8 @@ async def handle_calendar_update(
                         (
                             "⚠️ <b>Event Not Updated</b>\n\n"
                             "This is currently an all-day event. "
-                            "Changing it to a timed event will be "
-                            "added in a later update."
+                            "Changing it into a timed event is not "
+                            "supported yet."
                         ),
                         parse_mode="HTML",
                         reply_markup=get_persistent_main_keyboard(),
@@ -293,7 +360,7 @@ async def handle_calendar_update(
 
                 updates.update(
                     build_all_day_update(
-                        event,
+                        target_event,
                         parsed_update,
                     )
                 )
@@ -315,13 +382,29 @@ async def handle_calendar_update(
 
                 updates.update(
                     build_timed_update(
-                        event,
+                        target_event,
                         parsed_update,
                     )
                 )
 
-        updated_event = update_calendar_event(
-            event_id,
+            if (
+                is_recurring
+                and parsed_update.get("new_date")
+            ):
+                updated_recurrence = (
+                    update_weekly_recurrence_day(
+                        target_event,
+                        parsed_update["new_date"],
+                    )
+                )
+
+                if updated_recurrence:
+                    updates["recurrence"] = (
+                        updated_recurrence
+                    )
+
+        updated_event = update_calendar_series(
+            event,
             updates,
         )
 
@@ -330,18 +413,29 @@ async def handle_calendar_update(
             "Untitled Event",
         )
 
-        updated_date = build_updated_date_label(
+        updated_date = get_event_date_label(
             updated_event
         )
 
-        calendar_link = updated_event.get(
-            "htmlLink"
+        heading = (
+            "🔁 <b>Recurring Event Series Updated</b>"
+            if is_recurring
+            else "✏️ <b>Calendar Event Updated</b>"
         )
 
         message = (
-            "✏️ <b>Calendar Event Updated</b>\n\n"
+            f"{heading}\n\n"
             f"📌 <b>{escape(updated_title)}</b>\n"
             f"📅 {escape(updated_date)}"
+        )
+
+        if is_recurring:
+            message += (
+                "\n🔁 All future occurrences were updated."
+            )
+
+        calendar_link = updated_event.get(
+            "htmlLink"
         )
 
         if calendar_link:
