@@ -124,7 +124,19 @@ def detect_intent(
             "calendar_delete",
             0.99,
         )
+    # =====================================================
+    # Calendar Update
+    # =====================================================
 
+    if re.match(
+        r"^\s*(?:move|change|reschedule|rename)\s+\S+",
+        text,
+        re.IGNORECASE,
+    ):
+        return Intent(
+            "calendar_update",
+            0.99,
+        )
     # =====================================================
     # Calendar Event
     # =====================================================

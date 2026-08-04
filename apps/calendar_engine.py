@@ -491,3 +491,61 @@ def get_event_date_label(
         )
 
     return "Date unavailable"
+
+# ==========================================================
+# Event Updates
+# ==========================================================
+
+def get_calendar_event(
+    event_id: str,
+) -> dict:
+    """Return one Google Calendar event."""
+
+    if not event_id.strip():
+        raise ValueError(
+            "A Calendar event ID is required."
+        )
+
+    service = get_calendar_service()
+
+    return (
+        service.events()
+        .get(
+            calendarId=GOOGLE_CALENDAR_ID,
+            eventId=event_id,
+        )
+        .execute()
+    )
+
+
+def update_calendar_event(
+    event_id: str,
+    event_updates: dict,
+) -> dict:
+    """
+    Patch an existing Google Calendar event.
+
+    Only fields supplied in event_updates are changed.
+    """
+
+    if not event_id.strip():
+        raise ValueError(
+            "A Calendar event ID is required."
+        )
+
+    if not event_updates:
+        raise ValueError(
+            "Calendar update data is missing."
+        )
+
+    service = get_calendar_service()
+
+    return (
+        service.events()
+        .patch(
+            calendarId=GOOGLE_CALENDAR_ID,
+            eventId=event_id,
+            body=event_updates,
+        )
+        .execute()
+    )

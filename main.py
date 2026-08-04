@@ -85,7 +85,9 @@ from handlers.calendar_query_handler import (
 from handlers.calendar_delete_handler import (
     handle_calendar_delete,
 )
-
+from handlers.calendar_update_handler import (
+    handle_calendar_update,
+)
 async def reply_with_main_keyboard(update: Update, message: str) -> None:
     """Reply while restoring the persistent bottom keyboard."""
     if not update.message:
@@ -458,6 +460,7 @@ async def text_button_handler(
     "wedding_contribution": handle_wedding_contribution,
     "calendar_query": handle_calendar_query,
     "calendar_delete": handle_calendar_delete,
+    "calendar_update": handle_calendar_update,
     "calendar": handle_calendar,
     "expense": handle_expense,
     "income": handle_income,
