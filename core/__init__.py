@@ -1,0 +1,3 @@
+"""
+ShaunMariaOS Core
+"""

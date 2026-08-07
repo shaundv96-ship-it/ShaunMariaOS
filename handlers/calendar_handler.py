@@ -2,15 +2,15 @@
 ShaunMariaOS
 
 Calendar Handler
+Telegram interface for CalendarOS Core.
 """
 
 from html import escape
 
 from telegram import Update
 
-from apps.calendar_engine import create_calendar_event
-from apps.calendar_parser import parse_calendar_event
 from apps.menu_keyboard import get_persistent_main_keyboard
+from core.calendar_service import create_event_from_text
 from utils.logger import logger
 
 
@@ -58,59 +58,58 @@ async def handle_calendar(
     update: Update,
     text: str,
 ) -> None:
-    """Parse and create a natural-language calendar event."""
+    """Create a Calendar event through CalendarOS Core."""
 
     if not update.message:
         return
 
-
-    parsed_event = parse_calendar_event(
-        text
-    )
-
-
-    if parsed_event is None:
-        await update.message.reply_text(
-            (
-                "⚠️ <b>Calendar Event Not Added</b>\n\n"
-                "Please include a date, or a date and time.\n\n"
-                "Examples:\n"
-                "<code>Dinner with Maria tmrw 7pm</code>\n"
-                "<code>JB trip Saturday to Sunday</code>\n"
-                "<code>Gym every Monday 7pm</code>"
-            ),
-            parse_mode="HTML",
-            reply_markup=get_persistent_main_keyboard(),
-        )
-        return
-
-    if parsed_event.get("incomplete"):
-        await update.message.reply_text(
-            (
-                "📅 <b>Monthly Event Needs a Day</b>\n\n"
-                "Which day should it repeat each month?\n\n"
-                "Examples:\n"
-                "<code>Pay insurance every month on the 1st</code>\n"
-                "<code>Pay SIM bill every month on the 21st</code>"
-            ),
-            parse_mode="HTML",
-            reply_markup=get_persistent_main_keyboard(),
-        )
-        return
-
     try:
-        title = parsed_event["title"]
-        all_day = parsed_event["all_day"]
+        result = create_event_from_text(
+            text
+        )
+
+        if not result.success:
+            if result.status == "monthly_day_missing":
+                await update.message.reply_text(
+                    (
+                        "📅 <b>Monthly Event Needs a Day</b>\n\n"
+                        "Which day should it repeat each month?\n\n"
+                        "Examples:\n"
+                        "<code>Pay insurance every month on the 1st</code>\n"
+                        "<code>Pay SIM bill every month on the 21st</code>"
+                    ),
+                    parse_mode="HTML",
+                    reply_markup=get_persistent_main_keyboard(),
+                )
+                return
+
+            await update.message.reply_text(
+                (
+                    "⚠️ <b>Calendar Event Not Added</b>\n\n"
+                    f"{escape(result.message)}\n\n"
+                    "Examples:\n"
+                    "<code>Dinner with Maria tmrw 7pm</code>\n"
+                    "<code>JB trip Saturday to Sunday</code>\n"
+                    "<code>Gym every Monday 7pm</code>"
+                ),
+                parse_mode="HTML",
+                reply_markup=get_persistent_main_keyboard(),
+            )
+            return
+
+        parsed_event = result.parsed_event or {}
+        created_event = result.created_event or {}
+
+        title = parsed_event.get(
+            "title",
+            "Untitled Event",
+        )
+
         recurrence = parsed_event.get(
             "recurrence"
         )
 
-        logger.info(
-            "Creating Google Calendar event: %s",
-            title,
-        )
-
-        if all_day:
+        if parsed_event.get("all_day"):
             start_date = parsed_event[
                 "start_date"
             ]
@@ -118,14 +117,6 @@ async def handle_calendar(
             end_date = parsed_event[
                 "end_date"
             ]
-
-            created_event = create_calendar_event(
-                title=title,
-                start_date=start_date,
-                end_date=end_date,
-                all_day=True,
-                recurrence=recurrence,
-            )
 
             event_details = (
                 "📅 "
@@ -142,14 +133,6 @@ async def handle_calendar(
                 "end_time"
             ]
 
-            created_event = create_calendar_event(
-                title=title,
-                start_time=start_time,
-                end_time=end_time,
-                all_day=False,
-                recurrence=recurrence,
-            )
-
             date_label = start_time.strftime(
                 "%A, %d %B %Y"
             )
@@ -164,11 +147,6 @@ async def handle_calendar(
                 f"📅 {escape(date_label)}\n"
                 f"🕒 {escape(time_label)}"
             )
-
-        logger.info(
-            "Google Calendar event created: %s",
-            created_event.get("id"),
-        )
 
         heading = (
             "🔁 <b>Recurring Event Added</b>"
@@ -200,10 +178,6 @@ async def handle_calendar(
                 "</a>"
             )
 
-        logger.info(
-            "Sending Calendar confirmation to Telegram.",
-        )
-
         await update.message.reply_text(
             message,
             parse_mode="HTML",
@@ -213,7 +187,7 @@ async def handle_calendar(
 
     except Exception:
         logger.exception(
-            "Failed to create Calendar event."
+            "CalendarOS Core request failed."
         )
 
         await update.message.reply_text(
