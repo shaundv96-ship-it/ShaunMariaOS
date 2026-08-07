@@ -8,7 +8,10 @@ Reusable CalendarOS business logic for Telegram, web, and future app clients.
 from dataclasses import dataclass
 from typing import Any
 
-from apps.calendar_engine import create_calendar_event
+from apps.calendar_engine import (
+    create_calendar_event,
+    get_calendar_events_for_date,
+)
 from apps.calendar_parser import parse_calendar_event
 
 
@@ -90,3 +93,87 @@ def create_event_from_text(
         parsed_event=parsed_event,
         created_event=created_event,
     )
+
+@dataclass
+class CalendarTodayResult:
+    """Result returned when loading today's calendar."""
+
+    success: bool
+    status: str
+    message: str
+    events: list[dict]
+
+
+def get_today_events() -> CalendarTodayResult:
+    """
+    Load today's events from the shared Google Calendar.
+
+    Returns clean, client-independent event data for
+    Telegram, APIs, and the ShaunMariaOS app.
+    """
+
+    from apps.calendar_engine import (
+        get_calendar_events_for_date,
+    )
+    from utils.time import sg_now
+
+    try:
+        today = sg_now().date()
+
+        raw_events = get_calendar_events_for_date(
+            today
+        )
+
+        events = []
+
+        for event in raw_events:
+            start = event.get(
+                "start",
+                {},
+            )
+
+            end = event.get(
+                "end",
+                {},
+            )
+
+            all_day = "date" in start
+
+            events.append(
+                {
+                    "id": event.get("id"),
+                    "title": event.get(
+                        "summary",
+                        "Untitled Event",
+                    ),
+                    "all_day": all_day,
+                    "start": (
+                        start.get("date")
+                        if all_day
+                        else start.get("dateTime")
+                    ),
+                    "end": (
+                        end.get("date")
+                        if all_day
+                        else end.get("dateTime")
+                    ),
+                    "calendar_link": event.get(
+                        "htmlLink"
+                    ),
+                }
+            )
+
+        return CalendarTodayResult(
+            success=True,
+            status="ok",
+            message="Today's calendar loaded.",
+            events=events,
+        )
+
+    except Exception as exc:
+        return CalendarTodayResult(
+            success=False,
+            status="error",
+            message=str(exc),
+            events=[],
+        )

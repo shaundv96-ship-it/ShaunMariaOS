@@ -314,7 +314,66 @@ def get_calendar_event(
         .execute()
     )
 
+# ==========================================================
+# Calendar Reading
+# ==========================================================
 
+
+def get_calendar_events_for_date(
+    target_date,
+    *,
+    max_results: int = 20,
+) -> list[dict]:
+    """
+    Return calendar events occurring on a specific date.
+
+    This is used by ShaunMariaOS dashboards and other
+    read-only calendar views.
+    """
+
+    start_of_day = datetime.combine(
+        target_date,
+        datetime.min.time(),
+        tzinfo=SINGAPORE_TZ,
+    )
+
+    end_of_day = (
+        start_of_day
+        + timedelta(days=1)
+    )
+
+    logger.info(
+        "Loading calendar events for %s",
+        target_date,
+    )
+
+    service = get_calendar_service()
+
+    result = (
+        service.events()
+        .list(
+            calendarId=GOOGLE_CALENDAR_ID,
+            timeMin=start_of_day.isoformat(),
+            timeMax=end_of_day.isoformat(),
+            singleEvents=True,
+            orderBy="startTime",
+            maxResults=max_results,
+        )
+        .execute()
+    )
+
+    events = result.get(
+        "items",
+        [],
+    )
+
+    logger.info(
+        "Loaded %d calendar event(s) for %s",
+        len(events),
+        target_date,
+    )
+
+    return events
 # ==========================================================
 # Event Search
 # ==========================================================
@@ -373,6 +432,7 @@ def search_upcoming_calendar_events(
             "",
         ).casefold()
     ]
+
 
 
 # ==========================================================

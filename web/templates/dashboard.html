@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>ShaunMariaOS</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/app.css"
+    >
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">
+                SHAUNMARIAOS
+            </p>
+
+            <h1>
+                Good afternoon,<br>
+                Shaun & Maria.
+            </h1>
+        </div>
+
+        <button
+            class="avatar"
+            type="button"
+            aria-label="Profile"
+        >
+            S&M
+        </button>
+    </header>
+
+
+    <main class="dashboard">
+
+        <section class="hero-card">
+
+            <div class="hero-top">
+                <span>💍 Wedding</span>
+                <span class="hero-date">
+                    31 OCT 2026
+                </span>
+            </div>
+
+            <h2 id="wedding-countdown">
+                Loading…
+            </h2>
+
+            <p>
+                Until you two make it official. ❤️
+            </p>
+
+            <div class="progress">
+                <div class="progress-fill"></div>
+            </div>
+
+            <div class="progress-labels">
+                <span>Wedding fund</span>
+                <strong>Getting there</strong>
+            </div>
+
+        </section>
+
+
+        <section class="section-heading">
+            <div>
+                <p class="eyebrow">MONEYOS</p>
+                <h2>Your money</h2>
+            </div>
+
+            <span
+                class="health-badge"
+                id="money-health"
+            >
+                Loading
+            </span>
+        </section>
+
+
+        <section class="money-grid">
+
+            <article class="card money-primary">
+                <span class="card-label">
+                    Available
+                </span>
+
+                <strong
+                    class="money-large"
+                    id="available-money"
+                >
+                    —
+                </strong>
+
+                <small>
+                    After expenses & allocations
+                </small>
+            </article>
+
+
+            <article class="card">
+                <span class="card-label">
+                    Income
+                </span>
+
+                <strong id="income">
+                    —
+                </strong>
+            </article>
+
+
+            <article class="card">
+                <span class="card-label">
+                    Spent
+                </span>
+
+                <strong id="expenses">
+                    —
+                </strong>
+            </article>
+
+
+            <article class="card">
+                <span class="card-label">
+                    Allocated
+                </span>
+
+                <strong id="allocated">
+                    —
+                </strong>
+            </article>
+
+        </section>
+
+
+        <section class="section-heading">
+            <div>
+                <p class="eyebrow">TODAY</p>
+                <h2>What's happening</h2>
+            </div>
+        </section>
+
+
+        <section
+    id="today-events"
+    class="today-events"
+>
+    <article class="card schedule-card">
+        <div class="schedule-time">
+            …
+        </div>
+
+        <div>
+            <strong>
+                Loading today's calendar…
+            </strong>
+        </div>
+    </article>
+</section>
+
+
+        <section class="home-grid">
+
+            <article class="card">
+                <span class="card-icon">🏠</span>
+
+                <span class="card-label">
+                    OUR HOME
+                </span>
+
+                <strong>
+                    OakVille @ AMK
+                </strong>
+
+                <p>
+                    Projected TOP
+                    <br>
+                    Q3 2030
+                </p>
+            </article>
+
+
+            <article class="card">
+                <span class="card-icon">✅</span>
+
+                <span class="card-label">
+                    TASKS
+                </span>
+
+                <strong>
+                    4 remaining
+                </strong>
+
+                <p>
+                    You're on track.
+                </p>
+            </article>
+
+        </section>
+
+
+        <section class="advisor-card">
+
+            <span class="advisor-icon">
+                ✨
+            </span>
+
+            <div>
+                <p class="eyebrow">
+                    SHAUNMARIA ADVISOR
+                </p>
+
+                <h3>
+                    Things are looking steady.
+                </h3>
+
+                <p>
+                    Your cash position is healthy.
+                    Wedding funding remains the
+                    biggest upcoming priority.
+                </p>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <nav class="bottom-nav">
+
+        <button class="nav-item active">
+            <span>⌂</span>
+            <small>Home</small>
+        </button>
+
+        <button class="nav-item">
+            <span>▣</span>
+            <small>Calendar</small>
+        </button>
+
+        <button class="nav-item">
+            <span>$</span>
+            <small>Money</small>
+        </button>
+
+        <button class="nav-item">
+            <span>♥</span>
+            <small>Wedding</small>
+        </button>
+
+        <button class="nav-item">
+            <span>✓</span>
+            <small>Tasks</small>
+        </button>
+
+    </nav>
+
+</div>
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>
