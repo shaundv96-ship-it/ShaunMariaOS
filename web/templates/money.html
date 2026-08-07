@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Money · ShaunMariaOS</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/app.css"
+    >
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <header class="topbar">
+
+        <div>
+            <p class="eyebrow">
+                MONEYOS
+            </p>
+
+            <h1>
+                Our money.
+            </h1>
+        </div>
+
+        <a
+            href="/"
+            class="avatar page-back"
+        >
+            S&M
+        </a>
+
+    </header>
+
+
+    <main class="dashboard">
+
+        <section class="money-hero">
+
+            <p class="eyebrow money-hero-label">
+                AVAILABLE TO SPEND
+            </p>
+
+            <strong
+                id="money-page-available"
+                class="money-hero-value"
+            >
+                —
+            </strong>
+
+            <p id="money-page-health">
+                Loading MoneyOS…
+            </p>
+
+        </section>
+
+
+        <section class="money-page-grid">
+
+            <article class="card">
+                <span class="card-label">
+                    Income received
+                </span>
+
+                <strong id="money-page-income">
+                    —
+                </strong>
+            </article>
+
+
+            <article class="card">
+                <span class="card-label">
+                    Spent
+                </span>
+
+                <strong id="money-page-expenses">
+                    —
+                </strong>
+            </article>
+
+
+            <article class="card">
+                <span class="card-label">
+                    Allocated
+                </span>
+
+                <strong id="money-page-allocated">
+                    —
+                </strong>
+            </article>
+
+
+            <article class="card">
+                <span class="card-label">
+                    Cash flow
+                </span>
+
+                <strong id="money-page-cashflow">
+                    —
+                </strong>
+            </article>
+
+        </section>
+
+
+        <section class="section-heading">
+
+            <div>
+                <p class="eyebrow">
+                    ALLOCATIONS
+                </p>
+
+                <h2>
+                    Where it's going
+                </h2>
+            </div>
+
+        </section>
+
+
+        <section class="allocation-list">
+
+            <article class="card allocation-row">
+
+                <div class="allocation-icon">
+                    🏦
+                </div>
+
+                <div class="allocation-info">
+                    <span>Savings</span>
+
+                    <strong id="money-page-savings">
+                        —
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <article class="card allocation-row">
+
+                <div class="allocation-icon">
+                    🧾
+                </div>
+
+                <div class="allocation-info">
+                    <span>Bills</span>
+
+                    <strong id="money-page-bills">
+                        —
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <article class="card allocation-row">
+
+                <div class="allocation-icon">
+                    🛡️
+                </div>
+
+                <div class="allocation-info">
+                    <span>Insurance</span>
+
+                    <strong id="money-page-insurance">
+                        —
+                    </strong>
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <section class="money-note">
+
+            <span>✨</span>
+
+            <div>
+                <p class="eyebrow">
+                    MONEYOS
+                </p>
+
+                <strong>
+                    Know what you can actually spend.
+                </strong>
+
+                <p>
+                    Available money already accounts for
+                    spending and money you've set aside.
+                </p>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <nav class="bottom-nav">
+
+        <a
+            href="/"
+            class="nav-item"
+        >
+            <span>⌂</span>
+            <small>Home</small>
+        </a>
+
+        <a
+            href="/calendar"
+            class="nav-item"
+        >
+            <span>▣</span>
+            <small>Calendar</small>
+        </a>
+
+        <a
+            href="/money"
+            class="nav-item active"
+        >
+            <span>$</span>
+            <small>Money</small>
+        </a>
+
+        <button class="nav-item">
+            <span>♥</span>
+            <small>Us</small>
+        </button>
+
+        <a
+    href="/tasks"
+    class="nav-item"
+>
+    <span>✓</span>
+    <small>Tasks</small>
+</a>
+
+    </nav>
+
+</div>
+
+
+<script src="/static/money.js"></script>
+
+</body>
+</html>

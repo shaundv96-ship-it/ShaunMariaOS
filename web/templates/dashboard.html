@@ -191,23 +191,20 @@
 
 
             <article class="card">
-                <span class="card-icon">✅</span>
+    <span class="card-icon">✅</span>
 
-                <span class="card-label">
-                    TASKS
-                </span>
+    <span class="card-label">
+        TASKS
+    </span>
 
-                <strong>
-                    4 remaining
-                </strong>
+    <strong id="home-task-count">
+        —
+    </strong>
 
-                <p>
-                    You're on track.
-                </p>
-            </article>
-
-        </section>
-
+    <p id="home-task-message">
+        Loading TasksOS…
+    </p>
+</article>
 
         <section class="advisor-card">
 
@@ -243,25 +240,34 @@
             <small>Home</small>
         </button>
 
-        <button class="nav-item">
-            <span>▣</span>
-            <small>Calendar</small>
-        </button>
+        <a
+            href="/calendar"
+            class="nav-item"
+        >
+                <span>▣</span>
+                <small>Calendar</small>
+        </a>
 
-        <button class="nav-item">
+        <a
+    href="/money"
+    class="nav-item"
+>
             <span>$</span>
             <small>Money</small>
-        </button>
+    </a>
 
         <button class="nav-item">
             <span>♥</span>
-            <small>Wedding</small>
+            <small>Us</small>
         </button>
 
-        <button class="nav-item">
-            <span>✓</span>
-            <small>Tasks</small>
-        </button>
+        <a
+    href="/tasks"
+    class="nav-item"
+>
+    <span>✓</span>
+    <small>Tasks</small>
+</a>
 
     </nav>
 

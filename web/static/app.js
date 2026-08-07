@@ -160,6 +160,58 @@ async function loadTodayCalendar() {
     }
 }
 
+async function loadTasksSummary() {
+    try {
+        const response = await fetch(
+            "/api/tasks"
+        );
+
+        const data = await response.json();
+
+        const countElement =
+            document.getElementById(
+                "home-task-count"
+            );
+
+        const messageElement =
+            document.getElementById(
+                "home-task-message"
+            );
+
+        if (!data.success) {
+            countElement.textContent = "—";
+            messageElement.textContent =
+                "TasksOS unavailable.";
+            return;
+        }
+
+        const count =
+            data.count ?? 0;
+
+        countElement.textContent =
+            `${count} remaining`;
+
+        if (count === 0) {
+            messageElement.textContent =
+                "You're all caught up. ✨";
+        } else if (count === 1) {
+            messageElement.textContent =
+                "Just one thing left.";
+        } else if (count <= 3) {
+            messageElement.textContent =
+                "You're on track.";
+        } else {
+            messageElement.textContent =
+                "A few things need attention.";
+        }
+
+    } catch (error) {
+        console.error(
+            "TasksOS summary failed:",
+            error
+        );
+    }
+}
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -167,5 +219,7 @@ document.addEventListener(
         loadMoney();
         loadWeddingCountdown();
         loadTodayCalendar();
+        loadTasksSummary();
     }
 );
+

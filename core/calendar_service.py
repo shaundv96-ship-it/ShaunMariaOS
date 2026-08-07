@@ -177,3 +177,76 @@ def get_today_events() -> CalendarTodayResult:
             message=str(exc),
             events=[],
         )
+
+def get_events_for_date(
+    target_date,
+) -> CalendarTodayResult:
+    """
+    Load events for a specific date.
+
+    Returns the same clean event structure used by
+    the ShaunMariaOS web app.
+    """
+
+    from apps.calendar_engine import (
+        get_calendar_events_for_date,
+    )
+
+    try:
+        raw_events = get_calendar_events_for_date(
+            target_date
+        )
+
+        events = []
+
+        for event in raw_events:
+            start = event.get(
+                "start",
+                {},
+            )
+
+            end = event.get(
+                "end",
+                {},
+            )
+
+            all_day = "date" in start
+
+            events.append(
+                {
+                    "id": event.get("id"),
+                    "title": event.get(
+                        "summary",
+                        "Untitled Event",
+                    ),
+                    "all_day": all_day,
+                    "start": (
+                        start.get("date")
+                        if all_day
+                        else start.get("dateTime")
+                    ),
+                    "end": (
+                        end.get("date")
+                        if all_day
+                        else end.get("dateTime")
+                    ),
+                    "calendar_link": event.get(
+                        "htmlLink"
+                    ),
+                }
+            )
+
+        return CalendarTodayResult(
+            success=True,
+            status="ok",
+            message="Calendar loaded.",
+            events=events,
+        )
+
+    except Exception as exc:
+        return CalendarTodayResult(
+            success=False,
+            status="error",
+            message=str(exc),
+            events=[],
+        )

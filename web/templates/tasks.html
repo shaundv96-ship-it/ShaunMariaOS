@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Tasks · ShaunMariaOS</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/app.css"
+    >
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <header class="topbar">
+
+        <div>
+            <p class="eyebrow">
+                TASKSOS
+            </p>
+
+            <h1>
+                Things to do.
+            </h1>
+        </div>
+
+        <a
+            href="/"
+            class="avatar page-back"
+        >
+            S&M
+        </a>
+
+    </header>
+
+
+    <main class="dashboard">
+
+        <section class="task-summary">
+
+            <p class="eyebrow">
+                OPEN TASKS
+            </p>
+
+            <strong id="task-count">
+                —
+            </strong>
+
+            <span>
+                remaining
+            </span>
+
+        </section>
+
+
+        <section
+            id="task-list"
+            class="task-list"
+        >
+
+            <article class="card">
+                Loading TasksOS…
+            </article>
+
+        </section>
+
+
+        <section class="calendar-quick-add">
+
+            <p class="eyebrow">
+                QUICK ADD
+            </p>
+
+            <h2>
+                Add a task
+            </h2>
+
+            <div class="quick-add-box">
+
+                <input
+                    id="task-input"
+                    type="text"
+                    placeholder="What needs to be done?"
+                    autocomplete="off"
+                >
+
+                <button
+                    id="task-add-button"
+                    type="button"
+                >
+                    +
+                </button>
+
+            </div>
+
+            <div
+                id="task-result"
+                class="quick-add-result"
+            ></div>
+
+            <small>
+                Try: Buy wedding shoes · Call mum · Pay SIM bill
+            </small>
+
+        </section>
+
+    </main>
+
+
+    <nav class="bottom-nav">
+
+        <a href="/" class="nav-item">
+            <span>⌂</span>
+            <small>Home</small>
+        </a>
+
+        <a href="/calendar" class="nav-item">
+            <span>▣</span>
+            <small>Calendar</small>
+        </a>
+
+        <a href="/money" class="nav-item">
+            <span>$</span>
+            <small>Money</small>
+        </a>
+
+        <button class="nav-item">
+            <span>♥</span>
+            <small>Us</small>
+        </button>
+
+        <a
+            href="/tasks"
+            class="nav-item active"
+        >
+            <span>✓</span>
+            <small>Tasks</small>
+        </a>
+
+    </nav>
+
+</div>
+
+<script src="/static/tasks.js"></script>
+
+</body>
+</html>
