@@ -5,6 +5,8 @@ Calendar Engine
 Handles Google Calendar API operations.
 """
 
+import logging
+
 from datetime import datetime, timedelta
 
 from googleapiclient.discovery import build
@@ -14,6 +16,7 @@ from apps.google_engine import get_google_credentials
 from config import GOOGLE_CALENDAR_ID
 from utils.time import SINGAPORE_TZ, sg_now
 
+logger = logging.getLogger(__name__)
 
 # ==========================================================
 # Google Calendar Service
@@ -54,6 +57,11 @@ def create_calendar_event(
     end date, so one day is added.
     """
 
+    logger.info(
+        "Calendar engine received event creation request: %s",
+        title,
+    )
+
     if not title.strip():
         raise ValueError(
             "The calendar event needs a title."
@@ -83,6 +91,12 @@ def create_calendar_event(
             },
         }
 
+        logger.info(
+            "Prepared all-day Calendar event: %s to %s",
+            start_date,
+            end_date,
+        )
+
     else:
         if start_time is None or end_time is None:
             raise ValueError(
@@ -106,8 +120,16 @@ def create_calendar_event(
             },
         }
 
+        logger.info(
+            "Prepared timed Calendar event: %s to %s",
+            start_time,
+            end_time,
+        )
+
     if recurrence:
-        rrule = recurrence.get("rrule")
+        rrule = recurrence.get(
+            "rrule"
+        )
 
         if not rrule:
             raise ValueError(
@@ -118,9 +140,19 @@ def create_calendar_event(
             rrule,
         ]
 
+        logger.info(
+            "Attached Calendar recurrence rule: %s",
+            rrule,
+        )
+
+    logger.info(
+        "Requesting Google Calendar event creation: %s",
+        title,
+    )
+
     service = get_calendar_service()
 
-    return (
+    created_event = (
         service.events()
         .insert(
             calendarId=GOOGLE_CALENDAR_ID,
@@ -128,6 +160,13 @@ def create_calendar_event(
         )
         .execute()
     )
+
+    logger.info(
+        "Google Calendar event created successfully: %s",
+        created_event.get("id"),
+    )
+
+    return created_event
 
 
 # ==========================================================

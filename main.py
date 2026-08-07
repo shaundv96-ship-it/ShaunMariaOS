@@ -68,7 +68,6 @@ from utils.logger import logger
 from utils.startup import startup_banner
 from utils.time import sg_now
 
-from handlers.task_handler import handle_task
 from handlers.unknown_handler import handle_unknown
 from handlers.wedding_handler import handle_wedding
 from handlers.task_handler import (
@@ -414,6 +413,11 @@ async def text_button_handler(
 
     text = update.message.text.strip()
 
+    logger.info(
+        "Incoming Telegram text: %r",
+        text,
+    )
+
     routes = {
         "📅 Today": (
             format_today_events_for_telegram,
@@ -444,6 +448,11 @@ async def text_button_handler(
     route = routes.get(text)
 
     if route:
+        logger.info(
+            "Menu route matched: %r",
+            text,
+        )
+
         message_source, keyboard_source = route
 
         await update.message.reply_text(
@@ -453,32 +462,49 @@ async def text_button_handler(
         )
         return
 
-    # This line must be outside the route block.
     intent = detect_intent(text)
 
+    logger.info(
+        "Detected intent: %s (%.2f)",
+        intent.name,
+        intent.confidence,
+    )
+
     intent_handlers = {
-    "wedding_contribution": handle_wedding_contribution,
-    "calendar_query": handle_calendar_query,
-    "calendar_delete": handle_calendar_delete,
-    "calendar_update": handle_calendar_update,
-    "calendar": handle_calendar,
-    "expense": handle_expense,
-    "income": handle_income,
-    "wedding": handle_wedding,
-    "task": handle_task,
-}
+        "wedding_contribution": handle_wedding_contribution,
+        "calendar_query": handle_calendar_query,
+        "calendar_delete": handle_calendar_delete,
+        "calendar_update": handle_calendar_update,
+        "calendar": handle_calendar,
+        "expense": handle_expense,
+        "income": handle_income,
+        "wedding": handle_wedding,
+        "task": handle_task,
+    }
 
     handler = intent_handlers.get(
         intent.name,
         handle_unknown,
     )
 
+    logger.info(
+        "Dispatching to handler: %s",
+        handler.__name__,
+    )
+
     await handler(
         update,
         text,
     )
+
+    logger.info(
+        "Handler completed: %s",
+        handler.__name__,
+    )
+
 def register_handlers(app) -> None:
     """Register Telegram command, text, callback, and error handlers."""
+
     command_handlers = {
         "help": help_command,
         "menu": menu_command,
@@ -508,11 +534,15 @@ def register_handlers(app) -> None:
         "changelog": changelog_command,
         "chatid": chatid_command,
         "tasks": tasks_command,
-        
     }
 
     for command, callback in command_handlers.items():
-        app.add_handler(CommandHandler(command, callback))
+        app.add_handler(
+            CommandHandler(
+                command,
+                callback,
+            )
+        )
 
     app.add_handler(
         MessageHandler(
@@ -520,9 +550,16 @@ def register_handlers(app) -> None:
             text_button_handler,
         )
     )
-    app.add_handler(CallbackQueryHandler(handle_menu_button))
-    app.add_error_handler(error_handler)
 
+    app.add_handler(
+        CallbackQueryHandler(
+            handle_menu_button
+        )
+    )
+
+    app.add_error_handler(
+        error_handler
+    )
 
 def main() -> None:
     """Start ShaunMariaOS."""

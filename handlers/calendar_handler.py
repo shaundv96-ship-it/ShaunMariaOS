@@ -63,25 +63,11 @@ async def handle_calendar(
     if not update.message:
         return
 
+
     parsed_event = parse_calendar_event(
         text
     )
-    if (
-    parsed_event
-    and parsed_event.get("incomplete")
-):
-        await update.message.reply_text(
-        (
-            "📅 <b>Monthly Event Needs a Day</b>\n\n"
-            "Which day should it repeat each month?\n\n"
-            "Examples:\n"
-            "<code>Pay insurance every month on the 1st</code>\n"
-            "<code>Pay SIM bill every month on the 21st</code>"
-        ),
-        parse_mode="HTML",
-        reply_markup=get_persistent_main_keyboard(),
-    )
-    return
+
 
     if parsed_event is None:
         await update.message.reply_text(
@@ -98,11 +84,30 @@ async def handle_calendar(
         )
         return
 
+    if parsed_event.get("incomplete"):
+        await update.message.reply_text(
+            (
+                "📅 <b>Monthly Event Needs a Day</b>\n\n"
+                "Which day should it repeat each month?\n\n"
+                "Examples:\n"
+                "<code>Pay insurance every month on the 1st</code>\n"
+                "<code>Pay SIM bill every month on the 21st</code>"
+            ),
+            parse_mode="HTML",
+            reply_markup=get_persistent_main_keyboard(),
+        )
+        return
+
     try:
         title = parsed_event["title"]
         all_day = parsed_event["all_day"]
         recurrence = parsed_event.get(
             "recurrence"
+        )
+
+        logger.info(
+            "Creating Google Calendar event: %s",
+            title,
         )
 
         if all_day:
@@ -160,6 +165,11 @@ async def handle_calendar(
                 f"🕒 {escape(time_label)}"
             )
 
+        logger.info(
+            "Google Calendar event created: %s",
+            created_event.get("id"),
+        )
+
         heading = (
             "🔁 <b>Recurring Event Added</b>"
             if recurrence
@@ -190,6 +200,10 @@ async def handle_calendar(
                 "</a>"
             )
 
+        logger.info(
+            "Sending Calendar confirmation to Telegram.",
+        )
+
         await update.message.reply_text(
             message,
             parse_mode="HTML",
@@ -199,7 +213,7 @@ async def handle_calendar(
 
     except Exception:
         logger.exception(
-            "Failed to create calendar event."
+            "Failed to create Calendar event."
         )
 
         await update.message.reply_text(
