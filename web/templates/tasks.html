@@ -8,6 +8,10 @@
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
+    <meta
+    name="theme-color"
+    content="#cc6f7b"
+    >
 
     <title>Tasks · ShaunMariaOS</title>
 
@@ -15,6 +19,36 @@
         rel="stylesheet"
         href="/static/app.css"
     >
+    <link
+    rel="manifest"
+    href="/static/manifest.json"
+    >
+    <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+>
+<meta
+    name="mobile-web-app-capable"
+    content="yes"
+>
+<meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+>
+
+<meta
+    name="apple-mobile-web-app-title"
+    content="S&M OS"
+>
+<link
+    rel="apple-touch-icon"
+    href="/static/icons/apple-touch-icon.png"
+>
+<link
+    rel="icon"
+    type="image/png"
+    href="/static/icons/icon-192.png"
+>
 </head>
 
 <body>
@@ -133,10 +167,10 @@
             <small>Money</small>
         </a>
 
-        <button class="nav-item">
-            <span>♥</span>
-            <small>Us</small>
-        </button>
+        <a href="/us" class="nav-item">
+    <span>♥</span>
+    <small>Us</small>
+</a>
 
         <a
             href="/tasks"
@@ -151,6 +185,7 @@
 </div>
 
 <script src="/static/tasks.js"></script>
+<script src="/static/pwa.js"></script>
 
 </body>
 </html>

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import FileResponse
 
 from core.money_service import get_money_overview
 from core.calendar_service import (
@@ -19,13 +20,17 @@ from core.calendar_service import (
     get_events_for_date,
     get_today_events,
 )
-from core.money_service import get_money_overview
 from core.task_service import (
     complete_task_by_id,
     create_task_from_text,
     get_tasks,
 )
-
+from core.us_service import (
+    get_next_chapter,
+    get_us_overview,
+)
+from core.command_service import run_command
+from core.advisor_service import get_advisor
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -33,6 +38,15 @@ app = FastAPI(
     title="ShaunMariaOS",
     version="0.1.0",
 )
+
+@app.get("/service-worker.js")
+def service_worker():
+    """Serve the PWA service worker from the app root."""
+
+    return FileResponse(
+        BASE_DIR / "static" / "service-worker.js",
+        media_type="application/javascript",
+    )
 
 app.mount(
     "/static",
@@ -53,6 +67,11 @@ class CalendarCreateRequest(BaseModel):
 
 class TaskCreateRequest(BaseModel):
     """Natural-language task creation request."""
+
+    text: str
+
+class CommandRequest(BaseModel):
+    """Global ShaunMariaOS command request."""
 
     text: str
 
@@ -84,6 +103,7 @@ def money_overview():
         "savings": result.savings,
         "bills": result.bills,
         "insurance": result.insurance,
+        "wedding_fund": result.wedding_fund,
         "health": result.health,
     }
 
@@ -113,6 +133,19 @@ def dashboard(
             "page_title": "Home",
         },
     )
+
+@app.get("/api/advisor")
+def advisor():
+    """Return the current ShaunMaria Advisor."""
+
+    result = get_advisor()
+
+    return {
+        "success": result.success,
+        "status": result.status,
+        "title": result.title,
+        "message": result.message,
+    }
 
 @app.get("/api/calendar/date/{date_text}")
 def calendar_by_date(
@@ -336,3 +369,85 @@ def us_page(
             "page_title": "Us",
         },
     )
+
+@app.get("/api/us/next-chapter")
+def us_next_chapter():
+    """Return the current shared-life milestone."""
+
+    result = get_next_chapter()
+
+    return {
+        "success": result.success,
+        "status": result.status,
+        "message": result.message,
+        "title": result.title,
+        "subtitle": result.subtitle,
+        "icon": result.icon,
+        "days_remaining": result.days_remaining,
+    }
+
+@app.post("/api/command")
+def command(
+    request: CommandRequest,
+):
+    """Route a natural-language command through ShaunMariaOS Core."""
+
+    result = run_command(
+        request.text
+    )
+
+    return {
+        "success": result.success,
+        "status": result.status,
+        "message": result.message,
+        "intent": result.intent,
+        "data": result.data,
+    }
+
+@app.get("/api/us/overview")
+def us_overview():
+    """Return shared goals, timeline, and wedding fund data."""
+
+    result = get_us_overview()
+
+    response = {
+        "success": result.success,
+        "status": result.status,
+        "message": result.message,
+        "goals": [
+            {
+                "icon": goal.icon,
+                "label": goal.label,
+                "title": goal.title,
+                "subtitle": goal.subtitle,
+            }
+            for goal in result.goals
+        ],
+        "timeline": [
+            {
+                "icon": item.icon,
+                "title": item.title,
+                "subtitle": item.subtitle,
+            }
+            for item in result.timeline
+        ],
+        "wedding_fund": None,
+    }
+
+    if result.wedding_fund:
+        response["wedding_fund"] = {
+            "total_budget":
+                result.wedding_fund.total_budget,
+            "paid":
+                result.wedding_fund.paid,
+            "balance":
+                result.wedding_fund.balance,
+            "current_savings":
+                result.wedding_fund.current_savings,
+            "shortfall":
+                result.wedding_fund.shortfall,
+            "paid_percentage":
+                result.wedding_fund.paid_percentage,
+        }
+
+    return response

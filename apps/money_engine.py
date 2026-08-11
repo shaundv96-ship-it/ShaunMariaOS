@@ -77,6 +77,10 @@ def get_money_summary(
         "insurance": float(
             finance.get("insurance", 0.0)
         ),
+        "allocations": finance.get(
+            "allocations",
+            {},
+        ),
         "health": finance.get(
             "health",
             "",

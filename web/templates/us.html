@@ -9,13 +9,55 @@
         content="width=device-width, initial-scale=1"
     >
 
+    <meta
+        name="theme-color"
+        content="#cc6f7b"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="S&M OS"
+    >
+
     <title>Us · ShaunMariaOS</title>
 
     <link
         rel="stylesheet"
         href="/static/app.css"
     >
+
+    <link
+        rel="manifest"
+        href="/static/manifest.json"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/icons/apple-touch-icon.png"
+    >
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="/static/icons/icon-192.png"
+    >
 </head>
+
 
 <body>
 
@@ -36,6 +78,7 @@
         <a
             href="/"
             class="avatar page-back"
+            aria-label="Home"
         >
             S&M
         </a>
@@ -45,6 +88,10 @@
 
     <main class="dashboard">
 
+        <!-- ==================================================
+             NEXT CHAPTER
+             ================================================== -->
+
         <section class="us-section">
 
             <p class="eyebrow">
@@ -53,24 +100,33 @@
 
             <article class="next-chapter-card">
 
-                <span class="chapter-icon">
-                    💍
+                <span
+                    id="chapter-icon"
+                    class="chapter-icon"
+                >
+                    ✨
                 </span>
 
                 <div>
-                    <h2>
-                        85 days to go
+
+                    <h2 id="chapter-title">
+                        Loading...
                     </h2>
 
-                    <p>
-                        Wedding · 31 October 2026
+                    <p id="chapter-subtitle">
+                        Finding our next chapter...
                     </p>
+
                 </div>
 
             </article>
 
         </section>
 
+
+        <!-- ==================================================
+             OUR GOALS
+             ================================================== -->
 
         <section class="us-section">
 
@@ -83,76 +139,139 @@
             </h2>
 
 
-            <article class="card us-goal-card">
+            <!-- Wedding Fund -->
 
-                <span class="goal-icon">
-                    🏠
-                </span>
+            <article
+                id="wedding-fund-card"
+                class="card wedding-fund-card"
+            >
 
-                <div>
-                    <span class="card-label">
-                        OUR HOME
+                <div class="wedding-fund-heading">
+
+                    <span class="goal-icon">
+                        💍
                     </span>
 
-                    <strong>
-                        OakVille @ AMK
+                    <div>
+
+                        <span class="card-label">
+                            WEDDING FUND
+                        </span>
+
+                        <strong>
+                            Getting wedding-ready.
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="wedding-fund-main">
+
+                    <strong
+                        id="wedding-fund-savings"
+                        class="wedding-fund-value"
+                    >
+                        —
                     </strong>
 
-                    <p>
-                        Projected TOP · Q3 2030
-                    </p>
+                    <span>
+                        currently saved
+                    </span>
+
+                </div>
+
+
+                <div class="wedding-fund-progress">
+
+                    <div class="progress">
+
+                        <div
+                            id="wedding-fund-progress-fill"
+                            class="progress-fill"
+                        ></div>
+
+                    </div>
+
+                    <div class="progress-labels">
+
+                        <span>
+                            Wedding paid
+                        </span>
+
+                        <strong id="wedding-fund-percentage">
+                            —
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="wedding-fund-details">
+
+                    <div>
+
+                        <span class="card-label">
+                            REMAINING TO PAY
+                        </span>
+
+                        <strong id="wedding-fund-balance">
+                            —
+                        </strong>
+
+                    </div>
+
+                    <div>
+
+                        <span class="card-label">
+                            STILL NEEDED
+                        </span>
+
+                        <strong id="wedding-fund-shortfall">
+                            —
+                        </strong>
+
+                    </div>
+
                 </div>
 
             </article>
 
 
-            <article class="card us-goal-card">
+            <!-- Dynamic Shared Goals -->
 
-                <span class="goal-icon">
-                    ✈️
-                </span>
+            <div id="us-goals">
 
-                <div>
-                    <span class="card-label">
-                        NEXT ADVENTURE
+                <article class="card us-goal-card">
+
+                    <span class="goal-icon">
+                        ✨
                     </span>
 
-                    <strong>
-                        Melbourne
-                    </strong>
+                    <div>
 
-                    <p>
-                        2–8 November 2026
-                    </p>
-                </div>
+                        <span class="card-label">
+                            LOADING
+                        </span>
 
-            </article>
+                        <strong>
+                            Loading our goals…
+                        </strong>
 
+                    </div>
 
-            <article class="card us-goal-card">
+                </article>
 
-                <span class="goal-icon">
-                    💰
-                </span>
-
-                <div>
-                    <span class="card-label">
-                        OUR FUTURE
-                    </span>
-
-                    <strong>
-                        BTO Fund
-                    </strong>
-
-                    <p>
-                        Building our home together.
-                    </p>
-                </div>
-
-            </article>
+            </div>
 
         </section>
 
+
+        <!-- ==================================================
+             OUR TIMELINE
+             ================================================== -->
 
         <section class="us-section">
 
@@ -164,67 +283,34 @@
                 Big days ahead.
             </h2>
 
+            <div id="us-timeline">
 
-            <article class="card timeline-card">
+                <article class="card timeline-card">
 
-                <span>
-                    💍
-                </span>
+                    <span>
+                        ✨
+                    </span>
 
-                <div>
-                    <strong>
-                        Wedding
-                    </strong>
+                    <div>
 
-                    <p>
-                        31 October 2026
-                    </p>
-                </div>
+                        <strong>
+                            Loading our timeline…
+                        </strong>
 
-            </article>
+                    </div>
 
+                </article>
 
-            <article class="card timeline-card">
-
-                <span>
-                    ✈️
-                </span>
-
-                <div>
-                    <strong>
-                        Honeymoon
-                    </strong>
-
-                    <p>
-                        2–8 November 2026
-                    </p>
-                </div>
-
-            </article>
-
-
-            <article class="card timeline-card">
-
-                <span>
-                    🏠
-                </span>
-
-                <div>
-                    <strong>
-                        Our Home
-                    </strong>
-
-                    <p>
-                        Projected Q3 2030
-                    </p>
-                </div>
-
-            </article>
+            </div>
 
         </section>
 
     </main>
 
+
+    <!-- ======================================================
+         NAVIGATION
+         ====================================================== -->
 
     <nav class="bottom-nav">
 
@@ -272,5 +358,10 @@
 
 </div>
 
+
+<script src="/static/us.js"></script>
+<script src="/static/pwa.js"></script>
+
 </body>
+
 </html>

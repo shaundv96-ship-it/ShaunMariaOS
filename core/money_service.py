@@ -25,6 +25,7 @@ class MoneySummaryResult:
     savings: float = 0.0
     bills: float = 0.0
     insurance: float = 0.0
+    wedding_fund: float = 0.0
     health: str = "Unknown"
 
 
@@ -78,6 +79,15 @@ def get_money_overview(
             insurance=float(
                 summary.get("insurance", 0.0)
             ),
+            wedding_fund=float(
+                summary.get(
+                    "allocations",
+                    {},
+                ).get(
+                    "Wedding Fund",
+                    0.0,
+                )
+            ),
             health=str(
                 summary.get(
                     "health",
@@ -92,4 +102,3 @@ def get_money_overview(
             status="error",
             message=str(error),
         )
-        

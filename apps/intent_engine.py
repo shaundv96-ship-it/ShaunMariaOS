@@ -171,33 +171,7 @@ def detect_intent(
             0.95,
         )
 
-    # =====================================================
-    # Wedding
-    # =====================================================
-
-    wedding_keywords = (
-        "wedding",
-        "florist",
-        "bridal",
-        "photographer",
-        "videographer",
-        "church",
-        "banquet",
-        "venue",
-        "gown",
-        "sherwani",
-    )
-
-    if any(
-        keyword in text
-        for keyword in wedding_keywords
-    ):
-        return Intent(
-            "wedding",
-            0.90,
-        )
-
-    # =====================================================
+     # =====================================================
     # Task
     # =====================================================
 
@@ -260,6 +234,34 @@ def detect_intent(
             0.90,
         )
 
+
+    # =====================================================
+    # Wedding
+    # =====================================================
+
+    wedding_keywords = (
+        "wedding",
+        "florist",
+        "bridal",
+        "photographer",
+        "videographer",
+        "church",
+        "banquet",
+        "venue",
+        "gown",
+        "sherwani",
+    )
+
+    if any(
+        keyword in text
+        for keyword in wedding_keywords
+    ):
+        return Intent(
+            "wedding",
+            0.90,
+        )
+
+   
     # =====================================================
     # Expense
     # =====================================================

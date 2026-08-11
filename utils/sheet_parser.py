@@ -228,13 +228,27 @@ def get_finance_summary(
     bills = 0.0
     insurance = 0.0
 
+    allocations = {}
+
     for row in rows:
         if len(row) < 9:
             continue
 
-        category = str(row[1]).strip().casefold()
-        amount = number(row[4])
-        status = str(row[8]).strip().casefold()
+        category = str(
+            row[1]
+        ).strip().casefold()
+
+        item = str(
+            row[2]
+        ).strip()
+
+        amount = number(
+            row[4]
+        )
+
+        status = str(
+            row[8]
+        ).strip().casefold()
 
         if amount <= 0:
             continue
@@ -251,17 +265,44 @@ def get_finance_summary(
         ):
             savings += amount
 
+            if item:
+                allocations[item] = (
+                    allocations.get(
+                        item,
+                        0.0,
+                    )
+                    + amount
+                )
+
         elif (
             category == "bills"
             and status in {"allocated", "paid"}
         ):
             bills += amount
 
+            if item:
+                allocations[item] = (
+                    allocations.get(
+                        item,
+                        0.0,
+                    )
+                    + amount
+                )
+
         elif (
             category == "insurance"
             and status in {"allocated", "paid"}
         ):
             insurance += amount
+
+            if item:
+                allocations[item] = (
+                    allocations.get(
+                        item,
+                        0.0,
+                    )
+                    + amount
+                )
 
     commitments = (
         savings
@@ -282,9 +323,11 @@ def get_finance_summary(
         "insurance": insurance,
         "commitments": commitments,
         "available": available,
-        "health": finance_status(available),
+        "health": finance_status(
+            available
+        ),
+        "allocations": allocations,
     }
-
 
 # ====================================================
 # Bills

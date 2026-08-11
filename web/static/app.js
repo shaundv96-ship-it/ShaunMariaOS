@@ -213,6 +213,370 @@ async function loadTasksSummary() {
     }
 }
 
+async function loadWeddingProgress() {
+    const progressFill =
+        document.getElementById(
+            "wedding-progress-fill"
+        );
+
+    if (!progressFill) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            "/api/us/overview"
+        );
+
+        const data =
+            await response.json();
+
+        const weddingFund =
+            data.wedding_fund;
+
+        if (
+            !data.success ||
+            !weddingFund
+        ) {
+            return;
+        }
+
+        const paidPercentage =
+            Number(
+                weddingFund.paid_percentage
+            ) || 0;
+
+        const safePercentage =
+            Math.min(
+                100,
+                Math.max(
+                    0,
+                    paidPercentage
+                )
+            );
+
+        progressFill.style.width =
+            `${safePercentage}%`;
+
+    } catch (error) {
+        console.error(
+            "Wedding progress failed to load:",
+            error
+        );
+    }
+}
+
+async function loadAdvisor() {
+    const titleElement =
+        document.getElementById(
+            "advisor-title"
+        );
+
+    const messageElement =
+        document.getElementById(
+            "advisor-message"
+        );
+
+    if (!titleElement || !messageElement) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            "/api/advisor"
+        );
+
+        const data =
+            await response.json();
+
+        if (!data.success) {
+            titleElement.textContent =
+                "Advisor unavailable.";
+
+            messageElement.textContent =
+                data.message ||
+                "Please try again shortly.";
+
+            return;
+        }
+
+        titleElement.textContent =
+            data.title;
+
+        messageElement.textContent =
+            data.message;
+
+    } catch (error) {
+        console.error(
+            "Advisor failed to load:",
+            error
+        );
+
+        titleElement.textContent =
+            "Advisor unavailable.";
+
+        messageElement.textContent =
+            "Please try again shortly.";
+    }
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function formatCalendarMoment(value) {
+    if (!value) {
+        return "";
+    }
+
+    const parsed = new Date(value);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return String(value);
+    }
+
+    return new Intl.DateTimeFormat(
+        "en-SG",
+        {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            hour: "numeric",
+            minute: "2-digit",
+        }
+    ).format(parsed);
+}
+
+
+function getCommandSummary(
+    data,
+    originalText
+) {
+    const details =
+        data.data || {};
+
+    if (data.intent === "expense") {
+        const item =
+            details.item ||
+            "Expense";
+
+        const amount =
+            typeof details.amount === "number"
+                ? formatMoney(details.amount)
+                : null;
+
+        const category =
+            details.category || null;
+
+        return [
+            item,
+            amount,
+            category,
+        ]
+            .filter(Boolean)
+            .join(" · ");
+    }
+
+
+    if (data.intent === "income") {
+        const item =
+            details.item ||
+            "Income";
+
+        const amountValue =
+            details.amount ??
+            details.value;
+
+        const amount =
+            typeof amountValue === "number"
+                ? formatMoney(amountValue)
+                : null;
+
+        return [
+            item,
+            amount,
+        ]
+            .filter(Boolean)
+            .join(" · ");
+    }
+
+
+    if (data.intent === "task") {
+        const task =
+            details.task || {};
+
+        return (
+            task.title ||
+            task.item ||
+            task.task ||
+            originalText
+        );
+    }
+
+
+    if (data.intent === "calendar") {
+        const event =
+            details.parsed_event || {};
+
+        const title =
+            event.title ||
+            "Calendar event";
+
+        const start =
+            event.start_time ||
+            event.start_date;
+
+        const formattedStart =
+            start
+                ? formatCalendarMoment(start)
+                : "";
+
+        return [
+            title,
+            formattedStart,
+        ]
+            .filter(Boolean)
+            .join(" · ");
+    }
+
+
+    return originalText;
+}
+
+async function runGlobalCommand() {
+    const input =
+        document.getElementById(
+            "global-command-input"
+        );
+
+    const button =
+        document.getElementById(
+            "global-command-button"
+        );
+
+    const resultBox =
+        document.getElementById(
+            "global-command-result"
+        );
+
+    if (!input || !button || !resultBox) {
+        return;
+    }
+
+    const text =
+        input.value.trim();
+
+    if (!text) {
+        resultBox.innerHTML = `
+            <p class="quick-add-error">
+                Tell me what you'd like to do.
+            </p>
+        `;
+
+        return;
+    }
+
+    button.disabled = true;
+    input.disabled = true;
+    button.textContent = "…";
+
+    try {
+        const response = await fetch(
+            "/api/command",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                },
+
+                body: JSON.stringify({
+                    text: text,
+                }),
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!data.success) {
+            resultBox.innerHTML = `
+                <p class="quick-add-error">
+                    ${escapeHtml(data.message)}
+                </p>
+            `;
+
+            return;
+        }
+
+        const labels = {
+            calendar: "Added to Calendar",
+            task: "Task added",
+            expense: "Expense recorded",
+            income: "Income updated",
+        };
+
+        const label =
+            labels[data.intent]
+            || "Done";
+
+        const summary =
+            getCommandSummary(
+                data,
+                text
+            );
+
+        resultBox.innerHTML = `
+            <div class="quick-add-success">
+
+                <strong>
+                    ✓ ${escapeHtml(label)}
+                </strong>
+
+                <span>
+                    ${escapeHtml(summary)}
+                </span>
+
+            </div>
+        `;
+
+        input.value = "";
+
+        /*
+         * Refresh live Home modules.
+         */
+        loadTodayCalendar();
+        loadTasksSummary();
+        loadMoney();
+        loadAdvisor();
+
+    } catch (error) {
+        console.error(
+            "Global command failed:",
+            error
+        );
+
+        resultBox.innerHTML = `
+            <p class="quick-add-error">
+                Something went wrong.
+            </p>
+        `;
+
+    } finally {
+        button.disabled = false;
+        input.disabled = false;
+        button.textContent = "→";
+        input.focus();
+    }
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
@@ -220,6 +584,35 @@ document.addEventListener(
         loadWeddingCountdown();
         loadTodayCalendar();
         loadTasksSummary();
+        loadAdvisor();
+        loadWeddingProgress();
+        const commandButton =
+    document.getElementById(
+        "global-command-button"
+    );
+
+const commandInput =
+    document.getElementById(
+        "global-command-input"
+    );
+
+if (commandButton) {
+    commandButton.addEventListener(
+        "click",
+        runGlobalCommand
+    );
+}
+
+if (commandInput) {
+    commandInput.addEventListener(
+        "keydown",
+        event => {
+            if (event.key === "Enter") {
+                runGlobalCommand();
+            }
+        }
+    );
+}
     }
 );
 
