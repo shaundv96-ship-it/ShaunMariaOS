@@ -142,26 +142,35 @@ async def handle_task(
     task.owner = profile["owner"]
 
     try:
-        saved_task = save_task(task)
-        icon = get_task_icon(task.category)
+    saved_task = save_task(task)
+    icon = get_task_icon(task.category)
 
-        await update.message.reply_text(
-            (
-                "✅ <b>Task Added</b>\n\n"
-                f"{icon} <b>{escape(task.category)}</b>\n\n"
-                f"📝 <b>Task</b>\n"
-                f"{escape(task.task)}\n\n"
-                f"👤 <b>Owner</b>\n"
-                f"{escape(task.owner)}\n\n"
-                f"📌 <b>Priority</b>\n"
-                f"{escape(task.priority)}\n\n"
-                f"🔢 <b>Task ID</b>\n"
-                f"{saved_task['id']}\n\n"
-                "📋 Task list updated."
-            ),
-            parse_mode="HTML",
-            reply_markup=get_persistent_main_keyboard(),
+    due_date_section = ""
+
+    if task.due_date:
+        due_date_section = (
+            f"📅 <b>Due</b>\n"
+            f"{escape(task.due_date)}\n\n"
         )
+
+    await update.message.reply_text(
+        (
+            "✅ <b>Task Added</b>\n\n"
+            f"{icon} <b>{escape(task.category)}</b>\n\n"
+            f"📝 <b>Task</b>\n"
+            f"{escape(task.task)}\n\n"
+            f"👤 <b>Owner</b>\n"
+            f"{escape(task.owner)}\n\n"
+            f"📌 <b>Priority</b>\n"
+            f"{escape(task.priority)}\n\n"
+            f"{due_date_section}"
+            f"🔢 <b>Task ID</b>\n"
+            f"{saved_task['id']}\n\n"
+            "📋 Task list updated."
+        ),
+        parse_mode="HTML",
+        reply_markup=get_persistent_main_keyboard(),
+    )
 
     except Exception:
         logger.exception("Failed to save task.")
