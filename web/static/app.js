@@ -408,43 +408,153 @@ function getCommandSummary(
 
 
     if (data.intent === "task") {
-        const task =
-            details.task || {};
+    const task =
+        details.task || {};
 
-        return (
-            task.title ||
-            task.item ||
-            task.task ||
-            originalText
-        );
+    const title =
+        task.title ||
+        task.item ||
+        task.task ||
+        originalText;
+
+    const dueDate =
+        task.due_date || "";
+
+    if (!dueDate) {
+        return title;
     }
+
+    const parsedDueDate =
+        new Date(dueDate);
+
+    let formattedDueDate =
+        dueDate;
+
+    if (
+        !Number.isNaN(
+            parsedDueDate.getTime()
+        )
+    ) {
+        formattedDueDate =
+            parsedDueDate.toLocaleDateString(
+                "en-SG",
+                {
+                    day: "numeric",
+                    month: "short",
+                }
+            );
+    }
+
+    return (
+        `${title} · Due ${formattedDueDate}`
+    );
+}
 
 
     if (data.intent === "calendar") {
-        const event =
-            details.parsed_event || {};
+    const event =
+        details.parsed_event || {};
 
-        const title =
-            event.title ||
-            "Calendar event";
+    const title =
+        event.title ||
+        "Calendar event";
 
-        const start =
-            event.start_time ||
+    if (event.all_day) {
+        const startDate =
             event.start_date;
 
-        const formattedStart =
-            start
-                ? formatCalendarMoment(start)
-                : "";
+        const endDate =
+            event.end_date;
 
-        return [
-            title,
-            formattedStart,
-        ]
-            .filter(Boolean)
-            .join(" · ");
+        if (
+            startDate &&
+            endDate
+        ) {
+            const start =
+                new Date(
+                    `${startDate}T00:00:00+08:00`
+                );
+
+            const end =
+                new Date(
+                    `${endDate}T00:00:00+08:00`
+                );
+
+            const sameDay =
+                startDate === endDate;
+
+            const startDay =
+                start.toLocaleDateString(
+                    "en-SG",
+                    {
+                        day: "numeric",
+                    }
+                );
+
+            const endDay =
+                end.toLocaleDateString(
+                    "en-SG",
+                    {
+                        day: "numeric",
+                    }
+                );
+
+            const startMonth =
+                start.toLocaleDateString(
+                    "en-SG",
+                    {
+                        month: "short",
+                    }
+                );
+
+            const endMonth =
+                end.toLocaleDateString(
+                    "en-SG",
+                    {
+                        month: "short",
+                    }
+                );
+
+            let dateLabel;
+
+            if (sameDay) {
+                dateLabel =
+                    `${startDay} ${startMonth}`;
+            } else if (
+                startMonth === endMonth
+            ) {
+                dateLabel =
+                    `${startDay}–${endDay} ${startMonth}`;
+            } else {
+                dateLabel =
+                    `${startDay} ${startMonth}–${endDay} ${endMonth}`;
+            }
+
+            return (
+                `${title} · ${dateLabel} · All day`
+            );
+        }
+
+        return (
+            `${title} · All day`
+        );
     }
 
+    const start =
+        event.start_time;
+
+    const formattedStart =
+        start
+            ? formatCalendarMoment(start)
+            : "";
+
+    return [
+        title,
+        formattedStart,
+    ]
+        .filter(Boolean)
+        .join(" · ");
+}
 
     return originalText;
 }

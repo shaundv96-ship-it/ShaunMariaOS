@@ -337,6 +337,10 @@ def parse_calendar_date(
 
     today = sg_now().date()
 
+    # ======================================================
+    # Relative dates
+    # ======================================================
+
     if re.search(
         r"\btoday\b",
         normalized,
@@ -351,6 +355,10 @@ def parse_calendar_date(
             today
             + timedelta(days=1)
         )
+
+    # ======================================================
+    # Weekdays
+    # ======================================================
 
     weekday_match = re.search(
         r"\b(next\s+)?"
@@ -368,6 +376,47 @@ def parse_calendar_date(
                 weekday_match.group(1)
             ),
         )
+
+    # ======================================================
+    # Month-first dates
+    #
+    # October 5
+    # October 5 2026
+    # ======================================================
+
+    month_first_match = re.search(
+        r"\b"
+        r"(january|february|march|april|may|"
+        r"june|july|august|september|october|"
+        r"november|december)"
+        r"\s+(\d{1,2})"
+        r"(?:\s+(\d{4}))?\b",
+        normalized,
+    )
+
+    if month_first_match:
+        return build_month_date(
+            day=int(
+                month_first_match.group(2)
+            ),
+            month=MONTHS[
+                month_first_match.group(1)
+            ],
+            year=(
+                int(
+                    month_first_match.group(3)
+                )
+                if month_first_match.group(3)
+                else None
+            ),
+        )
+
+    # ======================================================
+    # Day-first dates
+    #
+    # 5 October
+    # 5 October 2026
+    # ======================================================
 
     month_match = re.search(
         r"\b(\d{1,2})\s+"
@@ -387,14 +436,15 @@ def parse_calendar_date(
                 month_match.group(2)
             ],
             year=(
-                int(month_match.group(3))
+                int(
+                    month_match.group(3)
+                )
                 if month_match.group(3)
                 else None
             ),
         )
 
     return None
-
 
 # ==========================================================
 # Date Range Parsing

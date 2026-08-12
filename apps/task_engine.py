@@ -20,7 +20,10 @@ from services.sheet_writer import (
     update_cells,
 )
 from utils.time import sg_now
-
+from apps.calendar_parser import (
+    normalize_calendar_text,
+    parse_calendar_date,
+)
 
 @dataclass
 class TaskEntry:
@@ -31,8 +34,117 @@ class TaskEntry:
     due_date: str = ""
 
 
-def parse_task(text: str) -> TaskEntry | None:
-    """Extract and categorise a new task from natural language."""
+def extract_task_due_date(
+    text: str,
+) -> tuple[str, str]:
+    """
+    Extract a due date from natural-language task text.
+
+    Examples:
+        Pay JB accommodation on Oct 5
+        Submit documents by 30 Sept
+        Renew insurance due 1 October
+    """
+
+    normalized = normalize_calendar_text(
+        text
+    )
+
+    due_pattern = re.compile(
+        r"\b(?:on|by|due(?:\s+on)?)\s+"
+        r"("
+        r"(?:"
+        r"january|february|march|april|may|"
+        r"june|july|august|september|october|"
+        r"november|december"
+        r")\s+\d{1,2}(?:\s+\d{4})?"
+        r"|"
+        r"\d{1,2}\s+(?:"
+        r"january|february|march|april|may|"
+        r"june|july|august|september|october|"
+        r"november|december"
+        r")(?:\s+\d{4})?"
+        r"|today"
+        r"|tomorrow"
+        r")\b",
+        re.IGNORECASE,
+    )
+
+    match = due_pattern.search(
+        normalized
+    )
+
+    if not match:
+        return (
+            text.strip(),
+            "",
+        )
+
+    due_text = match.group(1)
+
+    due_date = parse_calendar_date(
+        due_text
+    )
+
+    if due_date is None:
+        return (
+            text.strip(),
+            "",
+        )
+
+    cleaned_task = (
+        normalized[:match.start()]
+        + " "
+        + normalized[match.end():]
+    )
+
+    cleaned_task = re.sub(
+        r"\s+",
+        " ",
+        cleaned_task,
+    ).strip(" ,.-")
+
+    formatted_due_date = (
+        due_date.strftime(
+            "%d %B %Y"
+        ).lstrip("0")
+    )
+
+    return (
+        cleaned_task,
+        formatted_due_date,
+    )
+def restore_task_acronyms(
+    text: str,
+) -> str:
+    """Restore common acronyms after task parsing."""
+
+    acronyms = {
+        "jb": "JB",
+        "bto": "BTO",
+        "cpf": "CPF",
+        "hdb": "HDB",
+        "sg": "SG",
+        "kl": "KL",
+        "hr": "HR",
+    }
+
+    for word, replacement in acronyms.items():
+        text = re.sub(
+            rf"\b{re.escape(word)}\b",
+            replacement,
+            text,
+            flags=re.IGNORECASE,
+        )
+
+    return text
+def parse_task(
+    text: str,
+) -> TaskEntry | None:
+    """
+    Extract and categorise a new task
+    from natural language.
+    """
 
     task_text = text.strip()
 
@@ -50,19 +162,41 @@ def parse_task(text: str) -> TaskEntry | None:
 
     for prefix in prefixes:
         if lowered.startswith(prefix):
-            task_text = task_text[len(prefix):].strip()
+            task_text = (
+                task_text[
+                    len(prefix):
+                ].strip()
+            )
             break
 
     if not task_text:
         return None
 
-    task_text = task_text[0].upper() + task_text[1:]
+    task_text, due_date = (
+        extract_task_due_date(
+            task_text
+        )
+    )
+
+    task_text = restore_task_acronyms(
+    task_text
+    )
+    
+    if not task_text:
+        return None
+
+    task_text = (
+        task_text[0].upper()
+        + task_text[1:]
+    )
 
     return TaskEntry(
         task=task_text,
-        category=detect_task_category(task_text),
+        category=detect_task_category(
+            task_text
+        ),
+        due_date=due_date,
     )
-
 
 def parse_task_completion(text: str) -> int | None:
     """
