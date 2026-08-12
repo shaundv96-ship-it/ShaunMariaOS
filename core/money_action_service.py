@@ -129,7 +129,7 @@ def record_income_from_text(
     """
     Parse and save supported income.
 
-    v1 supports Shaun's salary row.
+    Salary entries must identify Shaun or Maria.
     """
 
     parsed = parse_income(text)
@@ -143,17 +143,33 @@ def record_income_from_text(
 
     lowered = text.casefold()
 
-    if "salary" in lowered:
-        parsed.owner = "Shaun"
-        parsed.item = "Shaun Salary"
-    else:
+    if "salary" not in lowered:
         return MoneyActionResult(
             success=False,
             status="unsupported",
             message=(
                 "That income type isn't mapped yet. "
-                "Try: Salary 3013.80"
+                "Try: Shaun Salary 3013.80 "
+                "or Maria Salary 1800."
             ),
+        )
+
+    if not parsed.owner:
+        return MoneyActionResult(
+            success=False,
+            status="owner_required",
+            message=(
+                "Whose salary is this? "
+                "Try: Shaun Salary 3013.80 "
+                "or Maria Salary 1800."
+            ),
+        )
+
+    if not parsed.item:
+        return MoneyActionResult(
+            success=False,
+            status="invalid",
+            message="I couldn't identify the salary row.",
         )
 
     try:

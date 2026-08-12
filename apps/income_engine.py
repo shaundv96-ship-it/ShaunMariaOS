@@ -31,15 +31,17 @@ def parse_income(
     Parse a salary or income message.
 
     Examples:
-        Salary 3013.80
-        Salary $3,013.80
-        Bonus SGD 500
+        Shaun Salary 3013.80
+        Shaun Salary $3,013.80
+        Maria Salary $1800
     """
+
+    text = text.strip()
 
     amount_match = re.search(
         r"(?:\$\s*|sgd\s*)?"
         r"(\d+(?:,\d{3})*(?:\.\d{1,2})?)",
-        text.strip(),
+        text,
         re.IGNORECASE,
     )
 
@@ -53,8 +55,30 @@ def parse_income(
     if amount <= 0:
         return None
 
+    lowered = text.casefold()
+
+    owner = ""
+    item = ""
+
+    if re.search(
+        r"\bshaun(?:'s)?\b",
+        lowered,
+    ):
+        owner = "Shaun"
+
+    elif re.search(
+        r"\bmaria(?:'s)?\b",
+        lowered,
+    ):
+        owner = "Maria"
+
+    if "salary" in lowered and owner:
+        item = f"{owner} Salary"
+
     return IncomeEntry(
         amount=amount,
+        owner=owner,
+        item=item,
     )
 
 
