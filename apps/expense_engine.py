@@ -7,6 +7,7 @@ Expense Engine
 from dataclasses import dataclass
 
 from apps.formatting_engine import money
+from apps.sheets_engine import clear_worksheet_cache
 from services.sheet_writer import append_row
 from utils.time import sg_now
 from utils.category_rules import CATEGORY_RULES
@@ -75,8 +76,11 @@ def parse_expense_command(arguments: list[str]) -> ExpenseEntry:
     )
 
 
-def save_expense(expense: ExpenseEntry) -> dict:
+def save_expense(
+    expense: ExpenseEntry,
+) -> dict:
     """Write an expense into the Expense Log worksheet."""
+
     now = sg_now()
 
     values = [
@@ -91,11 +95,16 @@ def save_expense(expense: ExpenseEntry) -> dict:
         expense.status,
     ]
 
-    return append_row(
+    result = append_row(
         EXPENSE_SHEET,
         values,
     )
 
+    clear_worksheet_cache(
+        EXPENSE_SHEET,
+    )
+
+    return result
 
 def format_expense_confirmation(expense: ExpenseEntry) -> str:
     """Return a Telegram confirmation message."""

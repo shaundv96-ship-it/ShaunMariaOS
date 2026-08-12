@@ -36,7 +36,9 @@ def get_money_summary(
         force_refresh=force_refresh,
     )
 
-    expenses = get_expense_summary()
+    expenses = get_expense_summary(
+        force_refresh=force_refresh,
+    )
 
     income = float(
         finance.get("income", 0.0)

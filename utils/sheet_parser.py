@@ -459,10 +459,15 @@ def get_insurance_summary() -> dict:
 # Expense Log
 # ====================================================
 
-def get_expense_summary() -> dict:
+def get_expense_summary(
+    *,
+    force_refresh: bool = False,
+) -> dict:
     """Return a summary of this month's expenses."""
 
-    rows = get_expense_log_sheet()
+    rows = get_expense_log_sheet(
+        force_refresh=force_refresh,
+    )
 
     summary = {
         "total": 0.0,
