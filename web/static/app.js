@@ -241,17 +241,35 @@ async function loadWeddingProgress() {
             return;
         }
 
-        const paidPercentage =
+        const totalBudget =
             Number(
-                weddingFund.paid_percentage
+                weddingFund.total_budget
             ) || 0;
+
+        const paid =
+            Number(
+                weddingFund.paid
+            ) || 0;
+
+        const currentSavings =
+            Number(
+                weddingFund.current_savings
+            ) || 0;
+
+        const fundedPercentage =
+            totalBudget > 0
+                ? (
+                    (paid + currentSavings)
+                    / totalBudget
+                ) * 100
+                : 0;
 
         const safePercentage =
             Math.min(
                 100,
                 Math.max(
                     0,
-                    paidPercentage
+                    fundedPercentage
                 )
             );
 
@@ -555,7 +573,39 @@ function getCommandSummary(
         .filter(Boolean)
         .join(" · ");
 }
+    if (
+    data.intent ===
+    "wedding_contribution"
+) {
+    const contributor =
+        details.contributor || "";
 
+    const contribution =
+        typeof details.contribution === "number"
+            ? formatMoney(
+                details.contribution
+            )
+            : "";
+
+    const currentSavings =
+        typeof details.current_savings === "number"
+            ? formatMoney(
+                details.current_savings
+            )
+            : "";
+
+    return [
+        contributor,
+        contribution
+            ? `+${contribution}`
+            : "",
+        currentSavings
+            ? `Fund now ${currentSavings}`
+            : "",
+    ]
+        .filter(Boolean)
+        .join(" · ");
+}
     return originalText;
 }
 
@@ -631,6 +681,7 @@ async function runGlobalCommand() {
             task: "Task added",
             expense: "Expense recorded",
             income: "Income updated",
+            wedding_contribution: "Wedding fund updated",
         };
 
         const label =
@@ -660,13 +711,32 @@ async function runGlobalCommand() {
         input.value = "";
 
         /*
-         * Refresh live Home modules.
-         */
-        loadTodayCalendar();
-        loadTasksSummary();
-        loadMoney();
-        loadAdvisor();
+ * Refresh only the Home modules
+ * affected by the completed action.
+ */
+if (data.intent === "calendar") {
+    loadTodayCalendar();
+}
 
+if (data.intent === "task") {
+    loadTasksSummary();
+}
+
+if (
+    data.intent === "expense" ||
+    data.intent === "income"
+) {
+    loadMoney();
+    loadAdvisor();
+}
+
+if (
+    data.intent ===
+    "wedding_contribution"
+) {
+    loadWeddingProgress();
+    loadAdvisor();
+}
     } catch (error) {
         console.error(
             "Global command failed:",
@@ -696,33 +766,35 @@ document.addEventListener(
         loadTasksSummary();
         loadAdvisor();
         loadWeddingProgress();
+
         const commandButton =
-    document.getElementById(
-        "global-command-button"
-    );
+            document.getElementById(
+                "global-command-button"
+            );
 
-const commandInput =
-    document.getElementById(
-        "global-command-input"
-    );
+        const commandInput =
+            document.getElementById(
+                "global-command-input"
+            );
 
-if (commandButton) {
-    commandButton.addEventListener(
-        "click",
-        runGlobalCommand
-    );
-}
-
-if (commandInput) {
-    commandInput.addEventListener(
-        "keydown",
-        event => {
-            if (event.key === "Enter") {
-                runGlobalCommand();
-            }
+        if (commandButton) {
+            commandButton.addEventListener(
+                "click",
+                runGlobalCommand
+            );
         }
-    );
-}
+
+        if (commandInput) {
+            commandInput.addEventListener(
+                "keydown",
+                event => {
+                    if (
+                        event.key === "Enter"
+                    ) {
+                        runGlobalCommand();
+                    }
+                }
+            );
+        }
     }
 );
-

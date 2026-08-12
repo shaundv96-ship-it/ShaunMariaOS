@@ -37,6 +37,7 @@ def detect_intent(
 
     short_wedding_contribution = bool(
         re.fullmatch(
+            r"(?:(?:shaun|maria)(?:'s)?\s+)?"
             r"wedding\s+\$?\s*"
             r"\d[\d,]*(?:\.\d{1,2})?",
             text,
