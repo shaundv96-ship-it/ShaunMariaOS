@@ -527,12 +527,18 @@ def parse_numbered_date_range(
     text: str,
 ) -> tuple[date, date] | None:
     """
-    Parse numbered ranges.
+    Parse numbered date ranges.
 
-    Examples:
+    Supported examples:
         3-5 Aug
         3 Aug to 5 Aug
         30 Aug to 2 Sept
+
+        Aug 3-5
+        Aug 3 to 5
+        Aug 30 to Sept 2
+        Oct 9 to 11 JB Trip
+        JB Trip Oct 9-11
     """
 
     normalized = normalize_calendar_text(
@@ -545,6 +551,162 @@ def parse_numbered_date_range(
         r"november|december)"
     )
 
+
+    # ======================================================
+    # Month-first, different months
+    #
+    # October 30 to November 2
+    # ======================================================
+
+    month_first_full_match = re.search(
+        rf"\b{month_pattern}\s+"
+        r"(\d{1,2})"
+        r"(?:\s+(\d{4}))?"
+        r"\s*(?:to|until|through|-)\s*"
+        rf"{month_pattern}\s+"
+        r"(\d{1,2})"
+        r"(?:\s+(\d{4}))?\b",
+        normalized,
+    )
+
+    if month_first_full_match:
+        start_month = MONTHS[
+            month_first_full_match.group(1)
+        ]
+
+        start_day = int(
+            month_first_full_match.group(2)
+        )
+
+        start_year = (
+            int(
+                month_first_full_match.group(3)
+            )
+            if month_first_full_match.group(3)
+            else None
+        )
+
+        end_month = MONTHS[
+            month_first_full_match.group(4)
+        ]
+
+        end_day = int(
+            month_first_full_match.group(5)
+        )
+
+        end_year = (
+            int(
+                month_first_full_match.group(6)
+            )
+            if month_first_full_match.group(6)
+            else start_year
+        )
+
+        start_date = build_month_date(
+            day=start_day,
+            month=start_month,
+            year=start_year,
+        )
+
+        if not start_date:
+            return None
+
+        end_date = build_month_date(
+            day=end_day,
+            month=end_month,
+            year=(
+                end_year
+                or start_date.year
+            ),
+        )
+
+        if not end_date:
+            return None
+
+        if end_date < start_date:
+            try:
+                end_date = end_date.replace(
+                    year=end_date.year + 1
+                )
+            except ValueError:
+                return None
+
+        return (
+            start_date,
+            end_date,
+        )
+
+
+    # ======================================================
+    # Month-first, shared month
+    #
+    # October 9 to 11
+    # October 9-11
+    # ======================================================
+
+    month_first_shared_match = re.search(
+        rf"\b{month_pattern}\s+"
+        r"(\d{1,2})"
+        r"\s*(?:to|until|through|-)\s*"
+        r"(\d{1,2})"
+        r"(?:\s+(\d{4}))?\b",
+        normalized,
+    )
+
+    if month_first_shared_match:
+        month = MONTHS[
+            month_first_shared_match.group(1)
+        ]
+
+        start_day = int(
+            month_first_shared_match.group(2)
+        )
+
+        end_day = int(
+            month_first_shared_match.group(3)
+        )
+
+        year = (
+            int(
+                month_first_shared_match.group(4)
+            )
+            if month_first_shared_match.group(4)
+            else None
+        )
+
+        start_date = build_month_date(
+            day=start_day,
+            month=month,
+            year=year,
+        )
+
+        if not start_date:
+            return None
+
+        end_date = build_month_date(
+            day=end_day,
+            month=month,
+            year=start_date.year,
+        )
+
+        if (
+            not end_date
+            or end_date < start_date
+        ):
+            return None
+
+        return (
+            start_date,
+            end_date,
+        )
+
+
+    # ======================================================
+    # Day-first, different months
+    #
+    # 30 August to 2 September
+    # ======================================================
+
     full_range_match = re.search(
         rf"\b(\d{{1,2}})\s+{month_pattern}"
         r"(?:\s+(\d{4}))?"
@@ -556,13 +718,17 @@ def parse_numbered_date_range(
 
     if full_range_match:
         start_year = (
-            int(full_range_match.group(3))
+            int(
+                full_range_match.group(3)
+            )
             if full_range_match.group(3)
             else None
         )
 
         end_year = (
-            int(full_range_match.group(6))
+            int(
+                full_range_match.group(6)
+            )
             if full_range_match.group(6)
             else start_year
         )
@@ -577,6 +743,9 @@ def parse_numbered_date_range(
             year=start_year,
         )
 
+        if not start_date:
+            return None
+
         end_date = build_month_date(
             day=int(
                 full_range_match.group(4)
@@ -584,21 +753,34 @@ def parse_numbered_date_range(
             month=MONTHS[
                 full_range_match.group(5)
             ],
-            year=end_year,
+            year=(
+                end_year
+                or start_date.year
+            ),
         )
 
-        if not start_date or not end_date:
+        if not end_date:
             return None
 
         if end_date < start_date:
             try:
                 end_date = end_date.replace(
-                    year=end_date.year + 1,
+                    year=end_date.year + 1
                 )
             except ValueError:
                 return None
 
-        return start_date, end_date
+        return (
+            start_date,
+            end_date,
+        )
+
+
+    # ======================================================
+    # Day-first, shared month
+    #
+    # 3-5 August
+    # ======================================================
 
     shared_month_match = re.search(
         rf"\b(\d{{1,2}})"
@@ -624,7 +806,9 @@ def parse_numbered_date_range(
     ]
 
     year = (
-        int(shared_month_match.group(4))
+        int(
+            shared_month_match.group(4)
+        )
         if shared_month_match.group(4)
         else None
     )
@@ -650,7 +834,10 @@ def parse_numbered_date_range(
     ):
         return None
 
-    return start_date, end_date
+    return (
+        start_date,
+        end_date,
+    )
 
 
 def parse_date_range(
@@ -839,6 +1026,33 @@ def clean_calendar_title(
             r"(?:next\s+)?"
             r"(?:monday|tuesday|wednesday|thursday|"
             r"friday|saturday|sunday)\b"
+        ),
+                # Month-first full ranges
+        (
+            r"\b"
+            r"(?:january|february|march|april|may|"
+            r"june|july|august|september|october|"
+            r"november|december)"
+            r"\s+\d{1,2}"
+            r"(?:\s+\d{4})?"
+            r"\s*(?:to|until|through|-)\s*"
+            r"(?:january|february|march|april|may|"
+            r"june|july|august|september|october|"
+            r"november|december)"
+            r"\s+\d{1,2}"
+            r"(?:\s+\d{4})?\b"
+        ),
+
+        # Month-first shared-month ranges
+        (
+            r"\b"
+            r"(?:january|february|march|april|may|"
+            r"june|july|august|september|october|"
+            r"november|december)"
+            r"\s+\d{1,2}"
+            r"\s*(?:to|until|through|-)\s*"
+            r"\d{1,2}"
+            r"(?:\s+\d{4})?\b"
         ),
 
         # Full month ranges
