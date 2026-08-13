@@ -191,6 +191,9 @@ def detect_intent(
     task_starters = (
         "get ",
         "buy ",
+        "bring ",
+        "take ",
+        "pack ",
         "call ",
         "book ",
         "collect ",
@@ -204,6 +207,10 @@ def detect_intent(
         "send ",
         "email ",
         "order ",
+        "return ",
+        "prepare ",
+        "check ",
+        "follow up ",
     )
 
     contains_amount = bool(

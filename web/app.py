@@ -18,12 +18,14 @@ from core.money_service import get_money_overview
 from core.calendar_service import (
     create_event_from_text,
     get_events_for_date,
+    get_month_events,
     get_today_events,
 )
 from core.task_service import (
     complete_task_by_id,
     create_task_from_text,
     get_tasks,
+    update_task_by_id,
 )
 from core.us_service import (
     get_next_chapter,
@@ -69,11 +71,21 @@ class TaskCreateRequest(BaseModel):
     """Natural-language task creation request."""
 
     text: str
+    owner: str | None = None
+
+class TaskUpdateRequest(BaseModel):
+    """TaskOS update request."""
+
+    task: str
+    owner: str = ""
+    priority: str = "Medium"
+    due_date: str = ""
 
 class CommandRequest(BaseModel):
     """Global ShaunMariaOS command request."""
 
     text: str
+    owner: str | None = None
 
 @app.get("/health")
 def health_check():
@@ -177,6 +189,27 @@ def calendar_by_date(
         "status": result.status,
         "message": result.message,
         "date": target_date.isoformat(),
+        "events": result.events,
+    }
+
+@app.get("/api/calendar/month/{year}/{month}")
+def calendar_by_month(
+    year: int,
+    month: int,
+):
+    """Return CalendarOS events for one month."""
+
+    result = get_month_events(
+        year,
+        month,
+    )
+
+    return {
+        "success": result.success,
+        "status": result.status,
+        "message": result.message,
+        "year": result.year,
+        "month": result.month,
         "events": result.events,
     }
 
@@ -314,7 +347,30 @@ def tasks_create(
     """Create a task from natural language."""
 
     result = create_task_from_text(
-        request.text
+        request.text,
+        owner=request.owner,
+    )
+
+    return {
+        "success": result.success,
+        "status": result.status,
+        "message": result.message,
+        "task": result.task,
+    }
+
+@app.post("/api/tasks/{task_id}/update")
+def tasks_update(
+    task_id: int,
+    request: TaskUpdateRequest,
+):
+    """Update an existing TasksOS task."""
+
+    result = update_task_by_id(
+        task_id,
+        task_text=request.task,
+        owner=request.owner,
+        priority=request.priority,
+        due_date=request.due_date,
     )
 
     return {
@@ -393,7 +449,8 @@ def command(
     """Route a natural-language command through ShaunMariaOS Core."""
 
     result = run_command(
-        request.text
+        request.text,
+        owner=request.owner,
     )
 
     return {

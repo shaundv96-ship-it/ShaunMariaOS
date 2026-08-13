@@ -264,6 +264,53 @@ def get_events_for_date(
         end_of_day,
     )
 
+def get_events_for_month(
+    year: int,
+    month: int,
+) -> list[dict]:
+    """Return all Calendar events occurring within one month."""
+
+    start_of_month = datetime(
+        year,
+        month,
+        1,
+        tzinfo=SINGAPORE_TZ,
+    )
+
+    if month == 12:
+        start_of_next_month = datetime(
+            year + 1,
+            1,
+            1,
+            tzinfo=SINGAPORE_TZ,
+        )
+    else:
+        start_of_next_month = datetime(
+            year,
+            month + 1,
+            1,
+            tzinfo=SINGAPORE_TZ,
+        )
+
+    logger.info(
+        "Loading calendar events for %04d-%02d",
+        year,
+        month,
+    )
+
+    events = get_events_between(
+        start_of_month,
+        start_of_next_month,
+    )
+
+    logger.info(
+        "Loaded %d calendar event(s) for %04d-%02d",
+        len(events),
+        year,
+        month,
+    )
+
+    return events
 
 def get_next_calendar_event() -> dict | None:
     """Return the next upcoming Calendar event."""

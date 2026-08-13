@@ -8,6 +8,58 @@ function escapeHtml(value) {
     return element.innerHTML;
 }
 
+function getTaskOwner() {
+    return localStorage.getItem(
+        "shaunmaria-owner"
+    );
+}
+
+
+function chooseTaskOwner() {
+    const existingOwner =
+        getTaskOwner();
+
+    if (existingOwner) {
+        return existingOwner;
+    }
+
+    const answer =
+        window.prompt(
+            "Who is using ShaunMariaOS on this device? Type Shaun or Maria."
+        );
+
+    if (!answer) {
+        return null;
+    }
+
+    const normalized =
+        answer.trim().toLowerCase();
+
+    let owner = null;
+
+    if (normalized === "shaun") {
+        owner = "Shaun";
+    }
+
+    if (normalized === "maria") {
+        owner = "Maria";
+    }
+
+    if (!owner) {
+        window.alert(
+            "Please enter Shaun or Maria."
+        );
+
+        return null;
+    }
+
+    localStorage.setItem(
+        "shaunmaria-owner",
+        owner
+    );
+
+    return owner;
+}
 
 function buildTaskCard(task) {
     const article =
@@ -35,33 +87,48 @@ function buildTaskCard(task) {
 
         <div class="task-info">
 
-            <strong>
-                ${escapeHtml(task.task)}
-            </strong>
+    <div class="task-title-row">
 
-            <div class="task-meta">
-                <span>
-                    ${escapeHtml(task.category)}
-                </span>
+        <strong>
+            ${escapeHtml(task.task)}
+        </strong>
 
-                <span>
-                    ${escapeHtml(owner)}
-                </span>
+        <button
+            class="task-edit-button"
+            type="button"
+        >
+            Edit
+        </button>
 
-                <span>
-                    ${escapeHtml(priority)}
-                </span>
-            </div>
+    </div>
 
-            ${
-                task.due_date
-                ? `
-                    <small>
-                        Due ${escapeHtml(task.due_date)}
-                    </small>
-                `
-                : ""
-            }
+    <div class="task-meta">
+        <span>
+            ${escapeHtml(task.category)}
+        </span>
+
+        <span>
+            ${escapeHtml(owner)}
+        </span>
+
+        <span>
+            ${escapeHtml(priority)}
+        </span>
+    </div>
+
+    ${
+        task.due_date
+        ? `
+            <small>
+                Due ${escapeHtml(task.due_date)}
+            </small>
+        `
+        : ""
+    }
+
+</div>
+
+        
 
         </div>
     `;
@@ -75,9 +142,143 @@ function buildTaskCard(task) {
             () => completeTask(task.id)
         );
 
+
+    article
+    .querySelector(
+        ".task-edit-button"
+    )
+    .addEventListener(
+        "click",
+        () => openTaskEditor(task)
+    );
+
     return article;
 }
 
+let editingTaskId = null;
+
+
+function taskDateToInputValue(
+    dueDate
+) {
+    if (!dueDate) {
+        return "";
+    }
+
+    const parsed =
+        new Date(dueDate);
+
+    if (
+        Number.isNaN(
+            parsed.getTime()
+        )
+    ) {
+        return "";
+    }
+
+    const year =
+        parsed.getFullYear();
+
+    const month =
+        String(
+            parsed.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            parsed.getDate()
+        ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+
+function inputDateToTaskDate(
+    value
+) {
+    if (!value) {
+        return "";
+    }
+
+    const [
+        year,
+        month,
+        day,
+    ] = value
+        .split("-")
+        .map(Number);
+
+    const date =
+        new Date(
+            year,
+            month - 1,
+            day
+        );
+
+    return (
+        `${date.getDate()} `
+        + date.toLocaleDateString(
+            "en-SG",
+            {
+                month: "long",
+                year: "numeric",
+            }
+        )
+    );
+}
+
+
+function openTaskEditor(task) {
+    editingTaskId =
+        task.id;
+
+    document.getElementById(
+        "task-edit-name"
+    ).value =
+        task.task || "";
+
+    document.getElementById(
+        "task-edit-owner"
+    ).value =
+        task.owner || "";
+
+    document.getElementById(
+        "task-edit-priority"
+    ).value =
+        task.priority || "Medium";
+
+    document.getElementById(
+        "task-edit-due-date"
+    ).value =
+        taskDateToInputValue(
+            task.due_date
+        );
+
+    document.getElementById(
+        "task-edit-result"
+    ).innerHTML = "";
+
+    const editor =
+        document.getElementById(
+            "task-editor"
+        );
+
+    editor.hidden = false;
+
+    editor.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+    });
+}
+
+
+function closeTaskEditor() {
+    editingTaskId = null;
+
+    document.getElementById(
+        "task-editor"
+    ).hidden = true;
+}
 
 async function loadTasks() {
     const list =
@@ -156,6 +357,13 @@ async function createTask() {
             "task-input"
         );
 
+    const owner =
+    chooseTaskOwner();
+
+    if (!owner) {
+    return;
+}
+
     const result =
         document.getElementById(
             "task-result"
@@ -182,6 +390,7 @@ async function createTask() {
 
                     body: JSON.stringify({
                         text: text,
+                        owner: owner,
                     }),
                 }
             );
@@ -222,6 +431,113 @@ async function createTask() {
     }
 }
 
+async function saveTaskEdit() {
+    if (editingTaskId === null) {
+        return;
+    }
+
+    const taskName =
+        document.getElementById(
+            "task-edit-name"
+        ).value.trim();
+
+    const owner =
+        document.getElementById(
+            "task-edit-owner"
+        ).value;
+
+    const priority =
+        document.getElementById(
+            "task-edit-priority"
+        ).value;
+
+    const dueDateInput =
+        document.getElementById(
+            "task-edit-due-date"
+        ).value;
+
+    const result =
+        document.getElementById(
+            "task-edit-result"
+        );
+
+    if (!taskName) {
+        result.innerHTML = `
+            <p class="quick-add-error">
+                Task name cannot be empty.
+            </p>
+        `;
+
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                `/api/tasks/${editingTaskId}/update`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                    },
+
+                    body: JSON.stringify({
+                        task: taskName,
+                        owner: owner,
+                        priority: priority,
+                        due_date:
+                            inputDateToTaskDate(
+                                dueDateInput
+                            ),
+                    }),
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!data.success) {
+            result.innerHTML = `
+                <p class="quick-add-error">
+                    ${escapeHtml(
+                        data.message
+                    )}
+                </p>
+            `;
+
+            return;
+        }
+
+        result.innerHTML = `
+            <div class="quick-add-success">
+                <strong>
+                    ✓ Task updated
+                </strong>
+            </div>
+        `;
+
+        await loadTasks();
+
+        setTimeout(
+            closeTaskEditor,
+            500
+        );
+
+    } catch (error) {
+        console.error(
+            "Task update failed:",
+            error
+        );
+
+        result.innerHTML = `
+            <p class="quick-add-error">
+                Something went wrong.
+            </p>
+        `;
+    }
+}
 
 async function completeTask(taskId) {
     try {
@@ -272,5 +588,26 @@ document.addEventListener(
                 }
             }
         );
+
+        document.getElementById(
+    "task-editor-close"
+).addEventListener(
+    "click",
+    closeTaskEditor
+);
+
+document.getElementById(
+    "task-edit-cancel"
+).addEventListener(
+    "click",
+    closeTaskEditor
+);
+
+document.getElementById(
+    "task-edit-save"
+).addEventListener(
+    "click",
+    saveTaskEdit
+);
     }
 );

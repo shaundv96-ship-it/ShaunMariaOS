@@ -659,7 +659,10 @@ async function runGlobalCommand() {
 
                 body: JSON.stringify({
                     text: text,
-                }),
+                    owner: localStorage.getItem(
+                        "shaunmaria-owner"
+                    ),
+            }),
             }
         );
 

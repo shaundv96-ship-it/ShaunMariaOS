@@ -74,6 +74,7 @@ def clean_wedding_contribution_text(
 
 def run_command(
     text: str,
+    owner: str | None = None,
 ) -> CommandResult:
     """
     Route natural-language input to the correct ShaunMariaOS service.
@@ -189,7 +190,8 @@ def run_command(
 
     if intent.name == "task":
         result = create_task_from_text(
-            text
+            text,
+            owner=owner,
         )
 
         return CommandResult(

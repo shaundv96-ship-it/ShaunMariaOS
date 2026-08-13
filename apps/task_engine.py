@@ -25,6 +25,10 @@ from apps.calendar_parser import (
     parse_calendar_date,
 )
 
+from apps.calendar_engine import (
+    resolve_calendar_query_date,
+)
+
 @dataclass
 class TaskEntry:
     task: str
@@ -35,85 +39,145 @@ class TaskEntry:
 
 
 def extract_task_due_date(
-    text: str,
+    task_text: str,
 ) -> tuple[str, str]:
     """
-    Extract a due date from natural-language task text.
+    Extract a due date from task text.
 
-    Examples:
+    Supports:
+        Bring pencil case on Monday
+        Pay SIM bill Friday
+        Call mum tomorrow
+        Collect suit on 25 Sept
         Pay JB accommodation on Oct 5
-        Submit documents by 30 Sept
-        Renew insurance due 1 October
+
+    Returns:
+        cleaned_task_text,
+        formatted_due_date
     """
 
-    normalized = normalize_calendar_text(
-        text
+    original_text = task_text.strip()
+
+    # =====================================================
+    # Relative dates
+    # =====================================================
+
+    resolved_date = resolve_calendar_query_date(
+        original_text
     )
 
-    due_pattern = re.compile(
-        r"\b(?:on|by|due(?:\s+on)?)\s+"
-        r"("
-        r"(?:"
-        r"january|february|march|april|may|"
-        r"june|july|august|september|october|"
-        r"november|december"
-        r")\s+\d{1,2}(?:\s+\d{4})?"
-        r"|"
-        r"\d{1,2}\s+(?:"
-        r"january|february|march|april|may|"
-        r"june|july|august|september|october|"
-        r"november|december"
-        r")(?:\s+\d{4})?"
-        r"|today"
-        r"|tomorrow"
-        r")\b",
-        re.IGNORECASE,
+    relative_patterns = (
+        r"\s+on\s+today$",
+        r"\s+today$",
+        r"\s+on\s+tomorrow$",
+        r"\s+tomorrow$",
+        r"\s+on\s+monday$",
+        r"\s+monday$",
+        r"\s+on\s+tuesday$",
+        r"\s+tuesday$",
+        r"\s+on\s+wednesday$",
+        r"\s+wednesday$",
+        r"\s+on\s+thursday$",
+        r"\s+thursday$",
+        r"\s+on\s+friday$",
+        r"\s+friday$",
+        r"\s+on\s+saturday$",
+        r"\s+saturday$",
+        r"\s+on\s+sunday$",
+        r"\s+sunday$",
     )
 
-    match = due_pattern.search(
-        normalized
-    )
+    if resolved_date:
+        cleaned_text = original_text
 
-    if not match:
-        return (
-            text.strip(),
-            "",
+        for pattern in relative_patterns:
+            cleaned_text = re.sub(
+                pattern,
+                "",
+                cleaned_text,
+                flags=re.IGNORECASE,
+            ).strip()
+
+        due_date_text = (
+            f"{resolved_date.day} "
+            f"{resolved_date.strftime('%B %Y')}"
         )
 
-    due_text = match.group(1)
-
-    due_date = parse_calendar_date(
-        due_text
-    )
-
-    if due_date is None:
         return (
-            text.strip(),
-            "",
+            cleaned_text,
+            due_date_text,
         )
 
-    cleaned_task = (
-        normalized[:match.start()]
-        + " "
-        + normalized[match.end():]
+    # =====================================================
+    # Explicit dates
+    # =====================================================
+
+    explicit_date_match = re.search(
+        r"""
+        (?:\s+on\s+|\s+)
+        (
+            (?:
+                \d{1,2}
+                \s+
+                [A-Za-z]{3,9}
+            )
+            |
+            (?:
+                [A-Za-z]{3,9}
+                \s+
+                \d{1,2}
+            )
+        )
+        $
+        """,
+        original_text,
+        re.IGNORECASE | re.VERBOSE,
     )
 
-    cleaned_task = re.sub(
-        r"\s+",
-        " ",
-        cleaned_task,
-    ).strip(" ,.-")
+    if explicit_date_match:
+        due_text = (
+            explicit_date_match
+            .group(1)
+            .strip()
+        )
 
-    formatted_due_date = (
-        due_date.strftime(
-            "%d %B %Y"
-        ).lstrip("0")
-    )
+        normalized_due_text = (
+            normalize_calendar_text(
+                due_text
+            )
+        )
+
+        due_date = parse_calendar_date(
+            normalized_due_text
+        )
+
+        if due_date:
+            cleaned_text = (
+                original_text[
+                    :explicit_date_match.start()
+                ]
+                .strip()
+            )
+
+            due_date_text = (
+                f"{due_date.day} "
+                f"{due_date.strftime('%B %Y')}"
+            )
+
+            return (
+                cleaned_text,
+                due_date_text,
+            )
+
+    # =====================================================
+    # No due date
+    # =====================================================
 
     return (
-        cleaned_task,
-        formatted_due_date,
+        original_text,
+        "",
     )
+
 def restore_task_acronyms(
     text: str,
 ) -> str:
@@ -181,7 +245,7 @@ def parse_task(
     task_text = restore_task_acronyms(
     task_text
     )
-    
+
     if not task_text:
         return None
 
@@ -388,4 +452,112 @@ def complete_task(task_id: int) -> dict:
     return {
         "id": task_id,
         "task": task_name,
+    }
+
+def update_task(
+    task_id: int,
+    *,
+    task_text: str,
+    owner: str,
+    priority: str,
+    due_date: str,
+) -> dict:
+    """Update an existing task using its ID."""
+
+    rows = get_tasks_sheet(
+        force_refresh=True,
+    )
+
+    target_row = None
+
+    for row_number, row in enumerate(
+        rows,
+        start=1,
+    ):
+        if not row:
+            continue
+
+        try:
+            row_task_id = int(
+                str(row[0]).strip()
+            )
+        except (
+            ValueError,
+            TypeError,
+            IndexError,
+        ):
+            continue
+
+        if row_task_id == task_id:
+            target_row = row_number
+            break
+
+    if target_row is None:
+        raise ValueError(
+            f"Task {task_id} could not be found."
+        )
+
+    task_text = task_text.strip()
+
+    if not task_text:
+        raise ValueError(
+            "Task name cannot be empty."
+        )
+
+    owner = owner.strip().title()
+
+    if owner not in (
+        "Shaun",
+        "Maria",
+        "",
+    ):
+        raise ValueError(
+            "Task owner must be Shaun or Maria."
+        )
+
+    priority = (
+        priority.strip().title()
+        or "Medium"
+    )
+
+    if priority not in (
+        "Low",
+        "Medium",
+        "High",
+    ):
+        raise ValueError(
+            "Priority must be Low, Medium, or High."
+        )
+
+    category = detect_task_category(
+        task_text
+    )
+
+    last_updated = sg_now().strftime(
+        "%d %B %Y"
+    )
+
+    update_cells(
+        TASKS_SHEET,
+        {
+            f"B{target_row}": task_text,
+            f"C{target_row}": owner,
+            f"D{target_row}": priority,
+            f"E{target_row}": due_date,
+            f"I{target_row}": last_updated,
+            f"J{target_row}": category,
+        },
+    )
+
+    get_tasks_sheet(
+        force_refresh=True,
+    )
+
+    return {
+        "id": task_id,
+        "task": task_text,
+        "category": category,
+        "owner": owner,
+        "priority": priority,
+        "due_date": due_date,
     }

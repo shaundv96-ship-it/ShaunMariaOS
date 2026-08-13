@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -8,9 +9,10 @@
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
+
     <meta
-    name="theme-color"
-    content="#cc6f7b"
+        name="theme-color"
+        content="#cc6f7b"
     >
 
     <title>Calendar · ShaunMariaOS</title>
@@ -19,37 +21,42 @@
         rel="stylesheet"
         href="/static/app.css"
     >
+
     <link
-    rel="manifest"
-    href="/static/manifest.json"
+        rel="manifest"
+        href="/static/manifest.json"
     >
+
     <meta
-    name="apple-mobile-web-app-capable"
-    content="yes"
->
-<meta
-    name="mobile-web-app-capable"
-    content="yes"
->
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
 
-<meta
-    name="apple-mobile-web-app-status-bar-style"
-    content="default"
->
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
 
-<meta
-    name="apple-mobile-web-app-title"
-    content="S&M OS"
->
-<link
-    rel="apple-touch-icon"
-    href="/static/icons/apple-touch-icon.png"
->
-<link
-    rel="icon"
-    type="image/png"
-    href="/static/icons/icon-192.png"
->
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="S&M OS"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/icons/apple-touch-icon.png"
+    >
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="/static/icons/icon-192.png"
+    >
 </head>
 
 <body>
@@ -81,63 +88,225 @@
 
     <main class="dashboard">
 
-        <section class="calendar-date-card">
-
-            <button
-                id="previous-day"
-                class="calendar-arrow"
-                type="button"
-            >
-                ‹
-            </button>
-
-            <div class="calendar-date-center">
-    <p
-        id="calendar-weekday"
-        class="eyebrow calendar-day-label"
-    >
-        TODAY
-    </p>
-
-    <h2 id="calendar-date-title">
-        Loading…
-    </h2>
-
-            <button
-                id="today-button"
-                class="today-button"
-                type="button"
-    >
-            Today
-            </button>
-        </div>
-
-            <button
-                id="next-day"
-                class="calendar-arrow"
-                type="button"
-            >
-                ›
-            </button>
-
-        </section>
-
+        <!-- Calendar view selector -->
 
         <section
-            id="calendar-events"
-            class="today-events calendar-events-list"
+            class="calendar-view-switch"
+            aria-label="Calendar view"
         >
 
-            <article class="card schedule-card">
-                <div>
-                    <strong>
-                        Loading calendar…
-                    </strong>
-                </div>
-            </article>
+            <button
+                id="month-view-button"
+                class="calendar-view-button active"
+                type="button"
+                aria-pressed="true"
+            >
+                Month
+            </button>
+
+            <button
+                id="day-view-button"
+                class="calendar-view-button"
+                type="button"
+                aria-pressed="false"
+            >
+                Day
+            </button>
 
         </section>
 
+
+        <!-- Month view -->
+
+        <section
+            id="month-view"
+            class="calendar-view"
+        >
+
+            <section class="calendar-month-card">
+
+                <div class="calendar-month-header">
+
+                    <button
+                        id="previous-month"
+                        class="calendar-arrow"
+                        type="button"
+                        aria-label="Previous month"
+                    >
+                        ‹
+                    </button>
+
+                    <div class="calendar-month-title">
+
+                        <p class="eyebrow">
+                            MONTH
+                        </p>
+
+                        <h2 id="calendar-month-title">
+                            Loading…
+                        </h2>
+
+                        <button
+                            id="month-today-button"
+                            class="today-button"
+                            type="button"
+                        >
+                            Today
+                        </button>
+
+                    </div>
+
+                    <button
+                        id="next-month"
+                        class="calendar-arrow"
+                        type="button"
+                        aria-label="Next month"
+                    >
+                        ›
+                    </button>
+
+                </div>
+
+
+                <div
+                    class="calendar-weekdays"
+                    aria-hidden="true"
+                >
+                    <span>MON</span>
+                    <span>TUE</span>
+                    <span>WED</span>
+                    <span>THU</span>
+                    <span>FRI</span>
+                    <span>SAT</span>
+                    <span>SUN</span>
+                </div>
+
+
+                <div
+                    id="calendar-month-grid"
+                    class="calendar-month-grid"
+                >
+                    <div class="calendar-month-loading">
+                        Loading calendar…
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- Selected day's agenda -->
+
+            <section class="calendar-agenda">
+
+                <div class="calendar-agenda-heading">
+
+                    <div>
+                        <p
+                            id="agenda-weekday"
+                            class="eyebrow"
+                        >
+                            TODAY
+                        </p>
+
+                        <h2 id="agenda-date-title">
+                            Loading…
+                        </h2>
+                    </div>
+
+                </div>
+
+                <div
+                    id="month-day-events"
+                    class="today-events calendar-events-list"
+                >
+
+                    <article class="card schedule-card">
+                        <div>
+                            <strong>
+                                Loading calendar…
+                            </strong>
+                        </div>
+                    </article>
+
+                </div>
+
+            </section>
+
+        </section>
+
+
+        <!-- Day view -->
+
+        <section
+            id="day-view"
+            class="calendar-view calendar-view-hidden"
+        >
+
+            <section class="calendar-date-card">
+
+                <button
+                    id="previous-day"
+                    class="calendar-arrow"
+                    type="button"
+                    aria-label="Previous day"
+                >
+                    ‹
+                </button>
+
+                <div class="calendar-date-center">
+
+                    <p
+                        id="calendar-weekday"
+                        class="eyebrow calendar-day-label"
+                    >
+                        TODAY
+                    </p>
+
+                    <h2 id="calendar-date-title">
+                        Loading…
+                    </h2>
+
+                    <button
+                        id="today-button"
+                        class="today-button"
+                        type="button"
+                    >
+                        Today
+                    </button>
+
+                </div>
+
+                <button
+                    id="next-day"
+                    class="calendar-arrow"
+                    type="button"
+                    aria-label="Next day"
+                >
+                    ›
+                </button>
+
+            </section>
+
+
+            <section
+                id="calendar-events"
+                class="today-events calendar-events-list"
+            >
+
+                <article class="card schedule-card">
+                    <div>
+                        <strong>
+                            Loading calendar…
+                        </strong>
+                    </div>
+                </article>
+
+            </section>
+
+        </section>
+
+
+        <!-- Quick Add -->
 
         <section class="calendar-quick-add">
 
@@ -149,30 +318,31 @@
                 Add something
             </h2>
 
-    <div class="quick-add-box">
+            <div class="quick-add-box">
 
-        <input
-            id="quick-add-input"
-            type="text"
-            placeholder="What would you like to add?"
-                autocomplete="off"
-        >
+                <input
+                    id="quick-add-input"
+                    type="text"
+                    placeholder="What would you like to add?"
+                    autocomplete="off"
+                >
 
-        <button
-            id="quick-add-button"
-            type="button"
-            aria-label="Add calendar event"
-        >
-        +
-        </button>
+                <button
+                    id="quick-add-button"
+                    type="button"
+                    aria-label="Add calendar event"
+                >
+                    +
+                </button>
 
-        </div>
+            </div>
 
-        <div
-            id="quick-add-result"
-            class="quick-add-result"
-            aria-live="polite"
-        ></div>
+            <div
+                id="quick-add-result"
+                class="quick-add-result"
+                aria-live="polite"
+            ></div>
+
             <small>
                 Try: Dinner tomorrow 7pm · JB trip 9–11 Oct · Gym every Monday 7pm
             </small>
@@ -203,23 +373,26 @@
         <a
             href="/money"
             class="nav-item"
->
+        >
             <span>$</span>
             <small>Money</small>
         </a>
 
-        <a href="/us" class="nav-item">
-    <span>♥</span>
-    <small>Us</small>
-</a>
+        <a
+            href="/us"
+            class="nav-item"
+        >
+            <span>♥</span>
+            <small>Us</small>
+        </a>
 
-       <a
-    href="/tasks"
-    class="nav-item"
->
-    <span>✓</span>
-    <small>Tasks</small>
-</a>
+        <a
+            href="/tasks"
+            class="nav-item"
+        >
+            <span>✓</span>
+            <small>Tasks</small>
+        </a>
 
     </nav>
 
@@ -230,4 +403,5 @@
 <script src="/static/pwa.js"></script>
 
 </body>
+
 </html>

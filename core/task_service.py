@@ -12,6 +12,7 @@ from apps.task_engine import (
     get_open_tasks,
     parse_task,
     save_task,
+    update_task,
 )
 
 
@@ -57,7 +58,10 @@ def get_tasks() -> TaskListResult:
         )
 
 
-def create_task_from_text(text: str) -> TaskActionResult:
+def create_task_from_text(
+    text: str,
+    owner: str | None = None,
+) -> TaskActionResult:
     """Create a task from natural-language text."""
 
     text = text.strip()
@@ -79,6 +83,9 @@ def create_task_from_text(text: str) -> TaskActionResult:
                 message="I couldn't understand that task.",
             )
 
+        if owner:
+            entry.owner = owner
+
         task = save_task(entry)
 
         return TaskActionResult(
@@ -94,7 +101,6 @@ def create_task_from_text(text: str) -> TaskActionResult:
             status="error",
             message=str(exc),
         )
-
 
 def complete_task_by_id(task_id: int) -> TaskActionResult:
     """Complete an existing task."""
@@ -113,6 +119,46 @@ def complete_task_by_id(task_id: int) -> TaskActionResult:
         return TaskActionResult(
             success=False,
             status="not_found",
+            message=str(exc),
+        )
+
+    except Exception as exc:
+        return TaskActionResult(
+            success=False,
+            status="error",
+            message=str(exc),
+        )
+
+def update_task_by_id(
+    task_id: int,
+    *,
+    task_text: str,
+    owner: str,
+    priority: str,
+    due_date: str,
+) -> TaskActionResult:
+    """Update an existing task."""
+
+    try:
+        task = update_task(
+            task_id,
+            task_text=task_text,
+            owner=owner,
+            priority=priority,
+            due_date=due_date,
+        )
+
+        return TaskActionResult(
+            success=True,
+            status="updated",
+            message="Task updated.",
+            task=task,
+        )
+
+    except ValueError as exc:
+        return TaskActionResult(
+            success=False,
+            status="invalid",
             message=str(exc),
         )
 

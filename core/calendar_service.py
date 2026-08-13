@@ -11,7 +11,9 @@ from typing import Any
 from apps.calendar_engine import (
     create_calendar_event,
     get_calendar_events_for_date,
+    get_events_for_month,
 )
+
 from apps.calendar_parser import parse_calendar_event
 
 
@@ -103,6 +105,101 @@ class CalendarTodayResult:
     message: str
     events: list[dict]
 
+def normalize_calendar_event(
+    event: dict,
+) -> dict:
+    """Convert a Google Calendar event into CalendarOS format."""
+
+    start = event.get(
+        "start",
+        {},
+    )
+
+    end = event.get(
+        "end",
+        {},
+    )
+
+    all_day = "date" in start
+
+    return {
+        "id": event.get("id"),
+        "title": event.get(
+            "summary",
+            "Untitled Event",
+        ),
+        "all_day": all_day,
+        "start": (
+            start.get("date")
+            if all_day
+            else start.get("dateTime")
+        ),
+        "end": (
+            end.get("date")
+            if all_day
+            else end.get("dateTime")
+        ),
+        "calendar_link": event.get(
+            "htmlLink"
+        ),
+    }
+
+@dataclass
+class CalendarMonthResult:
+    """Result returned when loading one calendar month."""
+
+    success: bool
+    status: str
+    message: str
+    year: int
+    month: int
+    events: list[dict]
+
+def get_month_events(
+    year: int,
+    month: int,
+) -> CalendarMonthResult:
+    """Load all events for one calendar month."""
+
+    if month < 1 or month > 12:
+        return CalendarMonthResult(
+            success=False,
+            status="invalid_month",
+            message="Month must be between 1 and 12.",
+            year=year,
+            month=month,
+            events=[],
+        )
+
+    try:
+        raw_events = get_events_for_month(
+            year,
+            month,
+        )
+
+        events = [
+            normalize_calendar_event(event)
+            for event in raw_events
+        ]
+
+        return CalendarMonthResult(
+            success=True,
+            status="ok",
+            message="Calendar month loaded.",
+            year=year,
+            month=month,
+            events=events,
+        )
+
+    except Exception as exc:
+        return CalendarMonthResult(
+            success=False,
+            status="error",
+            message=str(exc),
+            year=year,
+            month=month,
+            events=[],
+        )
 
 def get_today_events() -> CalendarTodayResult:
     """
@@ -124,7 +221,10 @@ def get_today_events() -> CalendarTodayResult:
             today
         )
 
-        events = []
+        events = [
+            normalize_calendar_event(event)
+            for event in raw_events
+        ]
 
         for event in raw_events:
             start = event.get(
@@ -197,7 +297,10 @@ def get_events_for_date(
             target_date
         )
 
-        events = []
+        events = [
+            normalize_calendar_event(event)
+            for event in raw_events
+        ]
 
         for event in raw_events:
             start = event.get(

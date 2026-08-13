@@ -8,9 +8,10 @@
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
+
     <meta
-    name="theme-color"
-    content="#cc6f7b"
+        name="theme-color"
+        content="#cc6f7b"
     >
 
     <title>Tasks · ShaunMariaOS</title>
@@ -19,37 +20,44 @@
         rel="stylesheet"
         href="/static/app.css"
     >
-    <link
-    rel="manifest"
-    href="/static/manifest.json"
-    >
-    <meta
-    name="apple-mobile-web-app-capable"
-    content="yes"
->
-<meta
-    name="mobile-web-app-capable"
-    content="yes"
->
-<meta
-    name="apple-mobile-web-app-status-bar-style"
-    content="default"
->
 
-<meta
-    name="apple-mobile-web-app-title"
-    content="S&M OS"
->
-<link
-    rel="apple-touch-icon"
-    href="/static/icons/apple-touch-icon.png"
->
-<link
-    rel="icon"
-    type="image/png"
-    href="/static/icons/icon-192.png"
->
+    <link
+        rel="manifest"
+        href="/static/manifest.json"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="S&M OS"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/icons/apple-touch-icon.png"
+    >
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="/static/icons/icon-192.png"
+    >
 </head>
+
 
 <body>
 
@@ -70,6 +78,7 @@
         <a
             href="/"
             class="avatar page-back"
+            aria-label="Home"
         >
             S&M
         </a>
@@ -78,6 +87,8 @@
 
 
     <main class="dashboard">
+
+        <!-- Open task summary -->
 
         <section class="task-summary">
 
@@ -96,6 +107,8 @@
         </section>
 
 
+        <!-- Task list -->
+
         <section
             id="task-list"
             class="task-list"
@@ -108,6 +121,157 @@
         </section>
 
 
+        <!-- Task editor -->
+
+        <section
+            id="task-editor"
+            class="task-editor"
+            hidden
+        >
+
+            <div class="task-editor-card">
+
+                <div class="task-editor-header">
+
+                    <div>
+                        <p class="eyebrow">
+                            EDIT TASK
+                        </p>
+
+                        <h2>
+                            Make a change.
+                        </h2>
+                    </div>
+
+                    <button
+                        id="task-editor-close"
+                        class="task-editor-close"
+                        type="button"
+                        aria-label="Close task editor"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <label class="task-editor-field">
+
+                    <span>
+                        Task
+                    </span>
+
+                    <input
+                        id="task-edit-name"
+                        type="text"
+                        autocomplete="off"
+                    >
+
+                </label>
+
+
+                <div class="task-editor-row">
+
+                    <label class="task-editor-field">
+
+                        <span>
+                            Owner
+                        </span>
+
+                        <select id="task-edit-owner">
+
+                            <option value="">
+                                Anyone
+                            </option>
+
+                            <option value="Shaun">
+                                Shaun
+                            </option>
+
+                            <option value="Maria">
+                                Maria
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label class="task-editor-field">
+
+                        <span>
+                            Priority
+                        </span>
+
+                        <select id="task-edit-priority">
+
+                            <option value="Low">
+                                Low
+                            </option>
+
+                            <option value="Medium">
+                                Medium
+                            </option>
+
+                            <option value="High">
+                                High
+                            </option>
+
+                        </select>
+
+                    </label>
+
+                </div>
+
+
+                <label class="task-editor-field">
+
+                    <span>
+                        Due date
+                    </span>
+
+                    <input
+                        id="task-edit-due-date"
+                        type="date"
+                    >
+
+                </label>
+
+
+                <div
+                    id="task-edit-result"
+                    class="quick-add-result"
+                    aria-live="polite"
+                ></div>
+
+
+                <div class="task-editor-actions">
+
+                    <button
+                        id="task-edit-cancel"
+                        class="task-edit-cancel"
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        id="task-edit-save"
+                        class="task-edit-save"
+                        type="button"
+                    >
+                        Save changes
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Quick Add -->
+
         <section class="calendar-quick-add">
 
             <p class="eyebrow">
@@ -117,6 +281,7 @@
             <h2>
                 Add a task
             </h2>
+
 
             <div class="quick-add-box">
 
@@ -130,19 +295,23 @@
                 <button
                     id="task-add-button"
                     type="button"
+                    aria-label="Add task"
                 >
                     +
                 </button>
 
             </div>
 
+
             <div
                 id="task-result"
                 class="quick-add-result"
+                aria-live="polite"
             ></div>
 
+
             <small>
-                Try: Buy wedding shoes · Call mum · Pay SIM bill
+                Try: Bring pencil case on Monday · Call mum tomorrow · Pay SIM bill Friday
             </small>
 
         </section>
@@ -152,25 +321,37 @@
 
     <nav class="bottom-nav">
 
-        <a href="/" class="nav-item">
+        <a
+            href="/"
+            class="nav-item"
+        >
             <span>⌂</span>
             <small>Home</small>
         </a>
 
-        <a href="/calendar" class="nav-item">
+        <a
+            href="/calendar"
+            class="nav-item"
+        >
             <span>▣</span>
             <small>Calendar</small>
         </a>
 
-        <a href="/money" class="nav-item">
+        <a
+            href="/money"
+            class="nav-item"
+        >
             <span>$</span>
             <small>Money</small>
         </a>
 
-        <a href="/us" class="nav-item">
-    <span>♥</span>
-    <small>Us</small>
-</a>
+        <a
+            href="/us"
+            class="nav-item"
+        >
+            <span>♥</span>
+            <small>Us</small>
+        </a>
 
         <a
             href="/tasks"
@@ -183,6 +364,7 @@
     </nav>
 
 </div>
+
 
 <script src="/static/tasks.js"></script>
 <script src="/static/pwa.js"></script>

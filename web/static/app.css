@@ -968,3 +968,578 @@ h1 {
 .hero-link:hover {
     text-decoration: underline;
 }
+/* ==========================================================
+   CalendarOS View Switch
+   ========================================================== */
+
+.calendar-view-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+
+    margin-bottom: 14px;
+    padding: 5px;
+
+    border: 1px solid var(--line);
+    border-radius: 999px;
+
+    background: var(--surface);
+}
+
+.calendar-view-button {
+    padding: 10px 16px;
+
+    border: 0;
+    border-radius: 999px;
+
+    background: transparent;
+    color: var(--muted);
+
+    font-size: 13px;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+.calendar-view-button.active {
+    background: var(--accent);
+    color: white;
+}
+
+.calendar-view-hidden {
+    display: none;
+}
+
+
+/* ==========================================================
+   CalendarOS Month Card
+   ========================================================== */
+
+.calendar-month-card {
+    padding: 18px;
+
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+
+    background: var(--surface);
+}
+
+.calendar-month-header {
+    display: grid;
+    grid-template-columns:
+        42px 1fr 42px;
+
+    align-items: center;
+
+    margin-bottom: 18px;
+}
+
+.calendar-month-title {
+    text-align: center;
+}
+
+.calendar-month-title h2 {
+    margin: 0;
+
+    font-size: 22px;
+    letter-spacing: -0.6px;
+}
+
+.calendar-month-title .eyebrow {
+    margin-bottom: 4px;
+}
+
+
+/* ==========================================================
+   Weekday Header
+   ========================================================== */
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns:
+        repeat(7, minmax(0, 1fr));
+
+    margin-bottom: 7px;
+}
+
+.calendar-weekdays span {
+    text-align: center;
+
+    color: var(--muted);
+
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+
+/* ==========================================================
+   Month Grid
+   ========================================================== */
+
+.calendar-month-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(7, minmax(0, 1fr));
+
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+
+    overflow: hidden;
+
+    border-radius: 15px;
+}
+
+.calendar-month-loading {
+    grid-column: 1 / -1;
+
+    padding: 30px 12px;
+
+    text-align: center;
+
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.calendar-month-day {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    min-width: 0;
+    min-height: 72px;
+
+    padding: 7px 5px;
+
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+
+    background: var(--surface);
+    color: var(--text);
+
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.calendar-month-day:hover {
+    background: #faf8f7;
+}
+
+.calendar-month-day.outside-month {
+    background: #faf9f8;
+    color: #b7b2ae;
+}
+
+.calendar-month-day-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+
+    margin-bottom: 4px;
+
+    border-radius: 50%;
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.calendar-month-day.today
+.calendar-month-day-number {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.calendar-month-day.selected {
+    background: #fcf3f4;
+}
+
+.calendar-month-day.selected
+.calendar-month-day-number {
+    background: var(--accent);
+    color: white;
+}
+
+
+/* ==========================================================
+   Month Event Pills
+   ========================================================== */
+
+.calendar-month-day-events {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    min-width: 0;
+}
+
+.calendar-month-event {
+    display: block;
+
+    min-width: 0;
+    padding: 3px 4px;
+
+    overflow: hidden;
+
+    border-radius: 5px;
+
+    background: var(--accent-soft);
+    color: var(--accent);
+
+    font-size: 8px;
+    font-weight: 800;
+
+    line-height: 1.15;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-month-more {
+    display: block;
+
+    padding-left: 2px;
+
+    color: var(--muted);
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+
+/* ==========================================================
+   Month Selected-Day Agenda
+   ========================================================== */
+
+.calendar-agenda {
+    margin-top: 24px;
+}
+
+.calendar-agenda-heading {
+    margin: 0 3px 11px;
+}
+
+.calendar-agenda-heading h2 {
+    margin: 0;
+
+    font-size: 22px;
+    letter-spacing: -0.5px;
+}
+
+
+/* ==========================================================
+   CalendarOS Mobile Polish
+   ========================================================== */
+
+@media (max-width: 420px) {
+
+    .calendar-month-card {
+        padding: 14px;
+    }
+
+    .calendar-month-day {
+        min-height: 64px;
+        padding: 6px 4px;
+    }
+
+    .calendar-month-day-number {
+        width: 21px;
+        height: 21px;
+
+        font-size: 10px;
+    }
+
+    .calendar-month-event {
+        font-size: 7px;
+    }
+
+    .calendar-month-more {
+        font-size: 7px;
+    }
+
+    .calendar-weekdays span {
+        font-size: 8px;
+    }
+
+    .calendar-month-title h2 {
+        font-size: 19px;
+    }
+}
+
+/* ==========================================================
+   CalendarOS Multi-day Events
+   ========================================================== */
+
+.calendar-month-grid {
+    position: relative;
+}
+
+.calendar-month-day {
+    position: relative;
+
+    min-height: 76px;
+
+    padding:
+        7px 5px
+        29px;
+}
+
+.calendar-month-day-events {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    margin-top: 2px;
+
+    min-width: 0;
+}
+
+.calendar-month-event {
+    position: relative;
+    z-index: 2;
+}
+
+.calendar-multi-day-event {
+    position: absolute;
+    z-index: 5;
+
+    height: 19px;
+
+    margin: 0;
+    padding: 2px 7px;
+
+    overflow: hidden;
+
+    border: 0;
+    border-radius: 6px;
+
+    background: var(--accent);
+    color: white;
+
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 15px;
+
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transform: translateX(2px);
+}
+
+.calendar-multi-day-event:hover {
+    filter: brightness(0.97);
+}
+
+
+/* ==========================================================
+   CalendarOS Multi-day Events — Mobile
+   ========================================================== */
+
+@media (max-width: 420px) {
+
+    .calendar-month-day {
+        min-height: 70px;
+
+        padding:
+            6px 4px
+            27px;
+    }
+
+    .calendar-multi-day-event {
+        height: 17px;
+
+        padding: 2px 5px;
+
+        border-radius: 5px;
+
+        font-size: 7px;
+        line-height: 13px;
+    }
+}
+
+/* ==========================================================
+   TasksOS Editing
+   ========================================================== */
+
+.task-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.task-title-row > strong {
+    flex: 1;
+}
+
+.task-edit-button {
+    flex-shrink: 0;
+
+    padding: 6px 10px;
+
+    border: 0;
+    border-radius: 999px;
+
+    background: var(--accent-soft);
+    color: var(--accent);
+
+    font-size: 10px;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+.task-editor {
+    margin-top: 18px;
+}
+
+.task-editor[hidden] {
+    display: none;
+}
+
+.task-editor-card {
+    padding: 22px;
+
+    border: 1px solid var(--line);
+    border-radius: 26px;
+
+    background: var(--surface);
+}
+
+.task-editor-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+
+    margin-bottom: 20px;
+}
+
+.task-editor-header h2 {
+    margin: 0;
+
+    font-size: 22px;
+}
+
+.task-editor-close {
+    flex-shrink: 0;
+
+    width: 36px;
+    height: 36px;
+
+    border: 0;
+    border-radius: 50%;
+
+    background: var(--accent-soft);
+    color: var(--accent);
+
+    font-size: 22px;
+    line-height: 1;
+
+    cursor: pointer;
+}
+
+.task-editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+
+    margin-top: 14px;
+}
+
+.task-editor-field > span {
+    color: var(--muted);
+
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.task-editor-field input,
+.task-editor-field select {
+    width: 100%;
+
+    padding: 13px 14px;
+
+    border: 1px solid var(--line);
+    border-radius: 15px;
+
+    background: var(--surface);
+    color: var(--text);
+
+    font: inherit;
+}
+
+.task-editor-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.task-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+
+    margin-top: 20px;
+}
+
+.task-edit-cancel,
+.task-edit-save {
+    padding: 11px 15px;
+
+    border: 0;
+    border-radius: 14px;
+
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+.task-edit-cancel {
+    background: #f0eeec;
+    color: var(--muted);
+}
+
+.task-edit-save {
+    background: var(--accent);
+    color: white;
+}
+
+
+/* ==========================================================
+   TasksOS Editing — Mobile
+   ========================================================== */
+
+@media (max-width: 420px) {
+
+    .task-editor-card {
+        padding: 18px;
+    }
+
+    .task-editor-row {
+        grid-template-columns: 1fr;
+    }
+
+    .task-editor-actions {
+        flex-direction: column-reverse;
+    }
+
+    .task-edit-cancel,
+    .task-edit-save {
+        width: 100%;
+    }
+}
